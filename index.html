@@ -1,38 +1,38 @@
-<！doctype 超文本标记语言>
-<超文本标记语言 朗="zh-CN">超文本标记语言朗="zh-CN">
-<头>
-    <元 字符集="UTF-8">
-    <元 姓名="视口" 内容="宽度=设备宽度，初始比例=1.0，最大比例=1.0，用户可缩放=无，视口适合=覆盖">
-    <链接 rel="苹果触摸图标" href="https://siesjk189.github.io/icon.png">
-    <链接 rel="图标" 类型="图像/png" 尺寸="192x192" href="https://siesjk189.github.io/icon.png">
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <link rel="apple-touch-icon" href="https://siesjk189.github.io/icon.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="https://siesjk189.github.io/icon.png">
     
-    <元 姓名="apple-mobile-web-app-title" 内容="三分糖小手机">
+    <meta name="apple-mobile-web-app-title" content="三分糖小手机">
     
-    <元 姓名="apple-mobile-web-app-capable" 内容="yes">
-    <元 姓名="支持移动Web应用程序" 内容="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
     
-    <元 姓名="apple-mobile-web-app-status-bar-style" 内容="black-translucent">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
-    <风格>
-：根{--wechat-green：#07c160；--bg-color：#ededed；--边框颜色：#d8d8d8；--link-color：#576b95；}
-*{边缘：0；padding:0；箱体尺寸：border-box；字体系列：-apple-system，sans-serif；}
-身体{背景：#1a1a2e；显示：弯曲；对齐-内容：居中；对称项目：中心；最小高度：100vh；溢出：自动；填充：20px0；}
-#电话包装纸{位置：相对的；宽度：390px；高度：844px；背景：#111；边缘半径：55px；padding:12px；箱形阴影：0002px#333，0004px#555，030px80px RG ba(0，0，0，0.8)，插图0001px#222；弯曲压缩：0；}
-#电话包装纸：：在……前面{内容：”；位置：绝对的；顶端：12px；左：50%；更改：translateX(-50%)；宽度：120px；高度：30px；背景：#111；边界半径：0×20px；z指数：9999；}
-#电话壳{宽度：100%；高度：100%；背景：var(--bg-color)；位置：相对的；显示：弯曲；挠曲方向：柱；边界半径：44PX；溢出：隐藏的；}
+    <style>
+        :root { --wechat-green: #07c160; --bg-color: #ededed; --border-color: #d8d8d8; --link-color: #576b95; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, sans-serif; }
+        body { background: #1a1a2e; display: flex; justify-content: center; align-items: center; min-height: 100vh; overflow: auto; padding: 20px 0; }
+        #phone-wrapper { position: relative; width: 390px; height: 844px; background: #111; border-radius: 55px; padding: 12px; box-shadow: 0 0 0 2px #333, 0 0 0 4px #555, 0 30px 80px rgba(0,0,0,0.8), inset 0 0 0 1px #222; flex-shrink: 0; }
+        #phone-wrapper::before { content: ''; position: absolute; top: 12px; left: 50%; transform: translateX(-50%); width: 120px; height: 30px; background: #111; border-radius: 0 0 20px 20px; z-index: 9999; }
+        #phone-shell { width: 100%; height: 100%; background: var(--bg-color); position: relative; display: flex; flex-direction: column; border-radius: 44px; overflow: hidden; }
 
-        @介质 (最大宽度: 480PX) {
-            身体 { padding: 0; 背景: #000; 对齐项目: stretch; }
-            #电话包装纸 { 宽度: 100%; 高度: 100DVH; 边界半径: 0; padding: 0; 箱形阴影: none; 背景: transparent; }
-            #电话包装纸::在……之前 { 显示: none; }
-            #电话壳 { 边界半径: 0; 高度: 100DVH; 顶部衬垫: env(safe-area-inset-top); 垫底: env(safe-area-inset-bottom); }
+        @media (max-width: 480px) {
+            body { padding: 0; background: #000; align-items: stretch; }
+            #phone-wrapper { width: 100%; height: 100dvh; border-radius: 0; padding: 0; box-shadow: none; background: transparent; }
+            #phone-wrapper::before { display: none; }
+            #phone-shell { border-radius: 0; height: 100dvh; padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
         }
         
-        .NAV { 高度: 48PX; 背景: var(--bg-color); 下边框: 0.5PX solid var(--边框颜色); 显示: 弯曲; 对齐项目: center; justify-content: center; 挠曲收缩: 0; Z指数: 1000; 位置: relative;}
-        .导航标题 { 字体粗细: bold; 字体大小: 16PX; }
-        .back-btn { 位置: absolute; 左: 15PX; 光标: pointer; 颜色: #000; 字体大小: 18PX; }
-        .more-btn { 位置: absolute; 正确的: 15PX; 光标: pointer; 字体粗细: bold; 字体大小: 18PX; 颜色: #333; }
-        .导航作用 { 位置: absolute; 正确的: 15PX; 颜色: var(--link-color); 光标: pointer; 字体大小: 14PX; 字体粗细: 500; }
+        .nav { height: 48px; background: var(--bg-color); border-bottom: 0.5px solid var(--border-color); display: flex; align-items: center; justify-content: center; flex-shrink: 0; z-index: 1000; position: relative;}
+        .nav-title { font-weight: bold; font-size: 16px; }
+        .back-btn { position: absolute; left: 15px; cursor: pointer; color: #000; font-size: 18px; }
+        .more-btn { position: absolute; right: 15px; cursor: pointer; font-weight: bold; font-size: 18px; color: #333; }
+        .nav-action { position: absolute; right: 15px; color: var(--link-color); cursor: pointer; font-size: 14px; font-weight: 500; }
         
         .viewport { flex: 1; overflow-y: auto; position: relative; }
         .page { display: none; height: 100%; }
