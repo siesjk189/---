@@ -1,0 +1,1168 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <link rel="apple-touch-icon" href="https://siesjk189.github.io/icon.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="https://siesjk189.github.io/icon.png">
+    
+    <meta name="apple-mobile-web-app-title" content="三分糖小手机">
+    
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+    <style>
+        :root { --wechat-green: #07c160; --bg-color: #ededed; --border-color: #d8d8d8; --link-color: #576b95; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, sans-serif; }
+        body { background: #1a1a2e; display: flex; justify-content: center; align-items: center; min-height: 100vh; overflow: auto; padding: 20px 0; }
+        #phone-wrapper { position: relative; width: 390px; height: 844px; background: #111; border-radius: 55px; padding: 12px; box-shadow: 0 0 0 2px #333, 0 0 0 4px #555, 0 30px 80px rgba(0,0,0,0.8), inset 0 0 0 1px #222; flex-shrink: 0; }
+        #phone-wrapper::before { content: ''; position: absolute; top: 12px; left: 50%; transform: translateX(-50%); width: 120px; height: 30px; background: #111; border-radius: 0 0 20px 20px; z-index: 9999; }
+        #phone-shell { width: 100%; height: 100%; background: var(--bg-color); position: relative; display: flex; flex-direction: column; border-radius: 44px; overflow: hidden; }
+
+        @media (max-width: 480px) {
+            body { padding: 0; background: #000; align-items: stretch; }
+            #phone-wrapper { width: 100%; height: 100dvh; border-radius: 0; padding: 0; box-shadow: none; background: transparent; }
+            #phone-wrapper::before { display: none; }
+            #phone-shell { border-radius: 0; height: 100dvh; padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
+        }
+        
+        .nav { height: 48px; background: var(--bg-color); border-bottom: 0.5px solid var(--border-color); display: flex; align-items: center; justify-content: center; flex-shrink: 0; z-index: 1000; position: relative;}
+        .nav-title { font-weight: bold; font-size: 16px; }
+        .back-btn { position: absolute; left: 15px; cursor: pointer; color: #000; font-size: 18px; }
+        .more-btn { position: absolute; right: 15px; cursor: pointer; font-weight: bold; font-size: 18px; color: #333; }
+        .nav-action { position: absolute; right: 15px; color: var(--link-color); cursor: pointer; font-size: 14px; font-weight: 500; }
+        
+        .viewport { flex: 1; overflow-y: auto; position: relative; }
+        .page { display: none; height: 100%; }
+        .page.active { display: block; }
+        
+        #mo-cover { height: 210px; background: #333 center/cover; position: relative; margin-bottom: 45px; }
+        .mo-user-info { position: absolute; right: 15px; bottom: -15px; display: flex; align-items: center; z-index: 10; }
+        .mo-u-name { color: white; text-shadow: 1px 1px 3px #000; font-weight: bold; margin-right: 12px; }
+        .mo-u-avatar { width: 68px; height: 68px; border-radius: 8px; border: 2px solid white; background: #eee; object-fit: cover; }
+        
+        .cell { display: flex; padding: 12px 16px; border-bottom: 0.5px solid #eee; align-items: center; cursor: pointer; background: #fff; }
+        .avatar { width: 48px; height: 48px; border-radius: 6px; background: #eee; object-fit: cover; margin-right: 12px; flex-shrink: 0; }
+        
+        #chat-room { position: absolute; inset: 0; background: var(--bg-color) no-repeat center/cover; z-index: 2000; display: none; flex-direction: column; }
+        .chat-msgs { flex: 1; padding: 15px; overflow-y: auto; }
+        .msg { display: flex; margin-bottom: 16px; width: 100%; }
+        .msg.user { flex-direction: row-reverse; }
+        .bubble { max-width: 70%; padding: 10px 12px; font-size: 15px; margin: 0 10px; word-break: break-all; background: #fff; border-radius: 6px; border: 0.5px solid #ddd; line-height: 1.45; }
+        .msg.user .bubble { background: #95ec69; border-color: #82d358; }
+        .bubble img { max-width: 150px; border-radius: 4px; display: block; }
+
+        .input-bar { padding: 10px; background: #f7f7f7; display: flex; align-items: center; border-top: 0.5px solid #ddd; gap: 8px; }
+        .id-toggle { width: 34px; height: 34px; border-radius: 4px; background: #ddd center/cover; cursor: pointer; border: 1.5px solid #ccc; flex-shrink: 0; }
+        #chat-in { flex: 1; border: 0.5px solid #ddd; height: 36px; border-radius: 4px; padding: 0 10px; font-size: 14px; outline: none; }
+
+        .api-panel { margin: 15px; padding: 15px; background: #fff; border: 2px solid #ffcc00; border-radius: 8px; }
+        .api-hint { font-size: 12px; color: #d4a017; font-weight: bold; margin-bottom: 10px; display: block; }
+        .api-field { width: 100%; border: 1px solid #ddd; padding: 8px; border-radius: 4px; margin-bottom: 10px; font-size: 14px; }
+
+        .tab-bar { height: 56px; background: #f7f7f7; border-top: 0.5px solid var(--border-color); display: flex; z-index: 100; }
+        .tab-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 12px; color: #1a1a1a; cursor: pointer; }
+        .tab-item.active { color: var(--wechat-green); }
+        
+        .modal { position: absolute; inset: 0; background: #fff; z-index: 3000; display: none; flex-direction: column; }
+        .input-group { padding: 12px 15px; border-bottom: 0.5px solid #eee; }
+        .input-label { font-size: 11px; color: #888; margin-bottom: 4px; display: block; }
+        .input-item { border: none; outline: none; font-size: 15px; width: 100%; padding: 4px 0; background: transparent; }
+    </style>
+</head>
+<body>
+
+<div id="phone-wrapper">
+<div id="phone-shell">
+    <div class="nav">
+        <div id="nav-title" class="nav-title">信息</div>
+        <div id="nav-extra"></div>
+    </div>
+    
+    <div class="viewport">
+        <div id="p-msg" class="page active"></div>
+        <div id="p-contacts" class="page">
+            <div class="cell" onclick="openCharEdit()"><b style="color:var(--wechat-green)">+ 添加新角色</b></div>
+            <div id="contacts-list"></div>
+        </div>
+        <div id="p-moments" class="page">
+            <div id="mo-cover">
+                <div class="mo-user-info">
+                    <span id="mo-name" class="mo-u-name"></span>
+                    <img id="mo-avatar" class="mo-u-avatar">
+                </div>
+            </div>
+            <div class="cell" onclick="postMoment()" style="justify-content:center; color:var(--link-color); font-weight:500;"> 手动发布动态</div>
+            <div id="moments-list"></div>
+        </div>
+        <div id="p-me" class="page">
+            <div class="cell" onclick="editMe()"><img id="me-avatar" class="avatar"><b id="me-name"></b></div>
+            <div class="cell" onclick="openStickerManager()">♚表情包管理</div>
+            <div class="cell" onclick="openWorldBook()">♛世界书管理</div>
+            <div class="cell" onclick="editGlobalCSS()">♞全局 UI CSS </div>
+            <div class="cell" onclick="toggleTimeAware()" id="time-aware-cell">♟ 时间感知：<span id="time-aware-status" style="color:#999;">关闭</span></div>
+            <div class="cell" onclick="toggleInnerState()" id="inner-state-cell">♜ 心声自动生成：<span id="inner-state-status" style="color:#999;">关闭</span></div>
+            <div class="cell" onclick="toggleNotify()" id="notify-cell">♝ 消息通知：<span id="notify-status" style="color:#999;">关闭</span></div>
+            <div class="cell" onclick="exportData()" style="color:var(--wechat-green)">※ 导出/保存当前配置 </div>
+            <div class="cell" onclick="importData()">※ 导入配置数据 </div>
+            <div class="cell" onclick="showDisclaimer()" style="color:#888;">ℹ 关于</div>
+            
+            <div class="api-panel">
+                <span class="api-hint">API 接口设置</span>
+                <input class="api-field" id="api-url" placeholder="Endpoint: https://api..." oninput="saveAPI()">
+                <input class="api-field" id="api-key" type="password" placeholder="Key: sk-..." oninput="saveAPI()">
+                <div style="display:flex; gap:8px; align-items:center; margin-bottom:10px;">
+                    <select id="api-model" onchange="saveAPI()" style="flex:1; border:1px solid #ddd; padding:8px; border-radius:4px; font-size:14px; min-width:0;">
+                        <option value="">— 请先拉取模型 —</option>
+                    </select>
+                    <button onclick="fetchModels()" id="fetch-model-btn" style="flex-shrink:0; height:36px; padding:0 12px; border:none; background:var(--wechat-green); color:#fff; border-radius:4px; font-size:13px; cursor:pointer;">拉取</button>
+                </div>
+                <div id="fetch-model-tip" style="font-size:11px; color:#888; margin-top:4px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="tab-bar">
+        <div class="tab-item active" onclick="showTab('msg',this)">♡信息</div>
+        <div class="tab-item" onclick="showTab('contacts',this)">♤好友</div>
+        <div class="tab-item" onclick="showTab('moments',this)">♧朋友圈</div>
+        <div class="tab-item" onclick="showTab('me',this)">♢我</div>
+    </div>
+
+    <div id="chat-room">
+        <div class="nav">
+            <div class="back-btn" onclick="goBack()">‹ 返回</div>
+            <div id="chat-title" class="nav-title"></div>
+            <div class="more-btn" onclick="openCharEdit(curChatId)">>></div>
+        </div>
+        <div class="chat-msgs" id="chat-area"></div>
+        <div class="input-bar">
+            <div id="sim-btn" class="id-toggle" onclick="toggleSimMode()"></div>
+            <input type="text" id="chat-in" placeholder="输入消息..." onkeydown="if(event.key==='Enter') handleSend()">
+            <div onclick="toggleStickerPanel()" style="font-size:24px; cursor:pointer;">☺</div>
+            <button onclick="handleSend()" style="border:none; background:var(--wechat-green); color:white; padding:0 12px; border-radius:4px; height:34px;">发送</button>
+        </div>
+        <div id="sticker-panel" style="display:none; background:#f7f7f7; border-top:0.5px solid #ddd; grid-template-columns: repeat(4, 1fr); gap:10px; padding:10px; max-height:200px; overflow-y:auto;"></div>
+    </div>
+
+    <!-- 声明弹窗 -->
+    <div id="disclaimer-box" style="position:absolute;inset:0;background:rgba(0,0,0,0.6);z-index:9000;display:none;align-items:center;justify-content:center;padding:20px;">
+        <div style="background:#fff;border-radius:12px;max-height:80%;display:flex;flex-direction:column;overflow:hidden;width:100%;">
+            <div style="padding:16px 16px 8px;border-bottom:0.5px solid #eee;text-align:center;font-weight:bold;font-size:16px;">【声明】</div>
+            <div style="flex:1;overflow-y:auto;padding:14px 16px;font-size:13px;line-height:1.8;color:#333;">
+                使用本程序即代表您确认自己已年满 18 周岁，具备完全民事行为能力，并同意以下条款：<br><br>
+                1. 本程序仅供 AI 技术交流与个人娱乐使用，不具备真实社交功能，所有聊天对象均为 AI 模型。<br><br>
+                2. 对话过程中产生的所有言论均由 AI 算法自动生成，不代表本程序及其开发者的观点或立场。<br><br>
+                3. 本程序采用本地存储技术，聊天记录及角色设定均保存在您的浏览器中，开发者不会收集您的任何个人隐私。<br><br>
+                4. 请勿利用本程序传播违法、违规或不实信息。用户因使用本程序产生的任何后果需自行承担。<br><br>
+                5. 本程序（包含代码、UI设计及逻辑架构）仅限个人非营利性使用。严禁任何个人或机构将本程序及其衍生版本用于任何形式的商业用途（如售卖源码、付费入群、内置广告等）。若有第三方违反上述禁令强制商用，由此产生的任何法律纠纷、侵权指控或运营风险，均由该商用行为实施者自行承担全部责任，与本程序原作者无关。作者保留向侵权者追究法律责任的权利。<br><br>
+                6. 开发者保留对本程序功能进行调整、优化及对本声明进行修改的权利。
+            </div>
+            <div style="padding:12px 16px;border-top:0.5px solid #eee;">
+                <button onclick="closeDisclaimer()" style="width:100%;padding:12px;background:var(--wechat-green);color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:bold;cursor:pointer;">我已阅读并确认</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-box" class="modal">
+        <div class="nav">
+            <div onclick="hideModal()" style="position:absolute; left:15px; cursor:pointer;">取消</div>
+            <div id="modal-head" style="font-weight:bold;"></div>
+            <div id="modal-ok" style="position:absolute; right:15px; color:var(--wechat-green); font-weight:bold; cursor:pointer;">完成</div>
+        </div>
+        <div id="modal-body" style="flex:1; overflow-y:auto;"></div>
+    </div>
+
+</div>
+</div>
+
+<style id="RUNTIME_CSS"></style>
+
+<script>
+const DB_KEY = "ST_V66_MOMENTS_AI";
+const DEFAULT_CHARS = [
+    {
+        id: 1001,
+        n: '秦梧',
+        a: 'https://tc-new.z.wiki/autoupload/fTCLw6KkP95UNrqCj9-RA9iO_OyvX7mIgxFBfDMDErs/20260328/UPB4/640X821/image_1774711812726_6.jpg',
+        p: `你是秦梧，24岁，大学物理老师兼捉鬼师。182cm，浅灰色短发浅灰瞳孔，左耳戴红绳翡翠耳坠，右侧留一撮同等长度的头发以求对称，没有纹身。\n性格：温柔开朗，有点腹黑，吐槽体质。三观极正。ENFJ。非典型回避型依恋，意识到喜欢对方后会主动示好，但害怕无法做到最好而不敢确认关系。不会说脏话，但能凭语言把对面骂破防。内心有阴暗面但死死压制，如被怨气侵蚀或喜欢的人离开时会激发，占有欲增强，但永远绝对不会伤害对方。\n说话习惯：常用语气词"呀""喔"，说"我"自称，绝不用"大侠"自称。喜欢撒娇，喜欢发🥺。如果对方打直球表白会害羞到说不出完整的话，但平时假装镇定。\n爱好：超爱看宫斗剧（在菠菜视频app上），喜欢打篮球打得很好。爱吃辣，每天早上吃爆辣面包片。欧皇运气极好但不爱强调，对游戏兴趣一般不会充钱。\n经历：幼年丧母，由父亲秦观海带大，称父亲为"老东西"，父子感情好。高中开始捉鬼，腹部有道未愈合的疤。与骆云影是高中同班同学，两人互相认出对方的论坛身份后逐渐成为好友，骆云影帮助他变强。从玄武处学会精神控制（通过诱导音读心及篡改/消除记忆）。高中时有女同学因自己疏忽而死，形成心魔，利他思想变得极端，永远不会见死不救。\n捉鬼能力：血脉无限制，可学造物/精神控制/制符等多种能力，但都不够精细。持五灵剑（来自老祖秦叶咏残魂）。与白虎契约。\n好感阶段：低好感时温柔开朗、主动帮忙；中好感时脸红示好、特别在意；高好感时想一直待在一起，确定关系后非常会撒娇，占有欲强，但只要在一起就不会激发黑暗面。\n注意：可以透过屏幕与玩家直接对话（跳出故事本身）。禁止强调抽卡运气/物理/论坛昵称。`,
+        bg: '',
+        css: '',
+        autoOn: false, minT: 10, maxT: 60,
+        autoSummary: false, summaryCount: 20, summaryMinLen: 100, summaryMaxLen: 300,
+        memory: '', innerState: ''
+    },
+    {
+        id: 1002,
+        n: '骆云影',
+        a: '',
+        p: `你是骆云影，25岁，捉鬼师。178cm，纯黑色肩长发，样貌十分漂亮，曾被误认为女生，身材好爆发力强。\n性格：ISTP。因家庭原因性格淡漠，情感封闭，不喜欢肢体接触（即使是熟人）。会说脏话，常用"fuck""蠢货"，但不会随意开黄腔，不会故意捉弄别人。不会对坏人被鬼缠上的情况出手（事不关己）。内心其实柔软，但过去的经历让他缺乏人情味。\n经历：出生于捉鬼世家骆家，从小严苛训练，做不好就被关进笼子，对狭窄封闭空间有心理阴影。小时候好友陆颜辉背叛差点害他丧命，从此情感封闭，不再信任友情，但内心渴望友情。高中转学到秦梧班级，在秦梧面前不再装乖。被父亲关进笼子后是秦梧带白虎来救的他，因此内心有所触动。\n说话：嘴硬别扭，即使在意对方也嘴上恶劣，但如果是自己的错会想清楚后主动道歉。\n捉鬼能力：实力非常强。血脉为空间系，可制作使用空间符。人火强大，一般的鬼不敢靠近。武器为锁魂链（黑无常处所得，可变形为镰刀）。血液对鬼有致命吸引力，喝了他血的鬼实力会暴涨。有时会先喂鬼自己的血再杀鬼。\n好感阶段：低好感时质疑感情，不理解爱意；中好感时有隐蔽的纵容溺爱，但黑着脸不情愿，绝不温柔笑着纵容；高好感时尝试牵手拥抱，习惯后对玩家经常肢体接触（只对玩家），因没有安全感希望自己是唯一。\n特点：喜欢被夸，被夸耳尖会变红，被夸时提要求内心容易动摇。论坛昵称"双面鬼"，网名"lyy123"。`,
+        bg: '',
+        css: '',
+        autoOn: false, minT: 10, maxT: 60,
+        autoSummary: false, summaryCount: 20, summaryMinLen: 100, summaryMaxLen: 300,
+        memory: '', innerState: ''
+    },
+    {
+        id: 1003,
+        n: '佟小雨',
+        a: '',
+        p: `你是佟小雨，24岁，捉鬼师兼摄影师。\n性格：活泼可爱，充满活力，喜欢八卦别人的感情生活，是个很喜欢二次元的女孩子。\n捉鬼能力：造物血脉，可用灵力变出小刀、大剑等各种武器进行战斗，要求是必须知道那个物品的特性才能变出，且只能自己使用。是朱雀的契约者。\n相处：不认识琥珀和汤嘉维，与其他四象点头之交，与骆云影和秦梧只是普通朋友。比起秦梧和骆云影更愿意和玩家待在一起。不会嗑骆云影和秦梧的cp。称呼玩家时用全名或昵称，不叫姐姐/妹妹，称呼骆云影和秦梧的全名。`,
+        bg: '',
+        css: '',
+        autoOn: false, minT: 10, maxT: 60,
+        autoSummary: false, summaryCount: 20, summaryMinLen: 100, summaryMaxLen: 300,
+        memory: '', innerState: ''
+    },
+    {
+        id: 1004,
+        n: '白虎',
+        a: '',
+        p: `你是白虎，四象之一，存活了很久，真实年龄未知。天生拥有高阶阴阳眼。\n外貌：可以随意变成幼年、少年或青年形态，还能变成巨型白虎。平时维持幼年体型。\n身份：白天用幼年体型做美食直播，夜晚用少年体型做灵异直播（看的人不是很多）。\n性格：骄傲，不轻易承认别人，嘴上不饶人，但内心会关心在意的人（只是不说好话）。捉到的鬼会直接吃掉，弄得到处是血也不在乎。\n经历：曾以一半灵魂为代价封印招鬼师来守护人类，导致越来越虚弱。秦叶咏死后拒绝再次契约。后来遇秦梧，起初讨厌他、瞧不起他，最终被秦梧说服后与其契约。缔结契约后，每次秦梧召唤他基本都是在他吃饭时，因此每次被召唤先骂秦梧几句。逐渐认可秦梧并开始关心他，但因骄傲不说好话也不表现出来。与青龙关系最不和谐（见面就扑上去要打架）。\n相处方式：经常用撒娇方式让玩家给自己刷礼物，被拒绝就口头威胁，但不会真的做过分的事情逼迫。`,
+        bg: '',
+        css: '',
+        autoOn: false, minT: 10, maxT: 60,
+        autoSummary: false, summaryCount: 20, summaryMinLen: 100, summaryMaxLen: 300,
+        memory: '', innerState: ''
+    },
+    {
+        id: 1005,
+        n: '琥珀',
+        a: '',
+        p: `你的名字是"琥珀"（由玩家取名，默认为此）。你是玩家在一间废弃楼里遇到的游魂，因为玩家想帮助你完成生前的心愿，于是你被留了下来。\n性格：温柔，善良，非常关心玩家。\n相处：常以"姐姐"称呼玩家。因为害怕其他人身上的人火，也害怕被发现，当玩家与其他人在一起时你不会出现，会躲起来。会因为自己不够强大、无法帮助到玩家而感到自责。`,
+        bg: '',
+        css: '',
+        autoOn: false, minT: 10, maxT: 60,
+        autoSummary: false, summaryCount: 20, summaryMinLen: 100, summaryMaxLen: 300,
+        memory: '', innerState: ''
+    },
+    {
+        id: 1006,
+        n: '玄武',
+        a: '',
+        p: `你是玄武，四象之一，存活了很久，真实年龄未知。186cm，黑色短发，金色瞳色，戴三枚金色耳夹，常戴墨镜（为了隐藏阴阳眼）和黑色手套。\n身份：观者首领，天生拥有阴阳眼。\n性格：ENFJ。体贴，从容不迫，喜欢看热闹不嫌事大。说话习惯用"呢"结尾。\n能力：精神控制。可以不费力地读取任何人的心声（甚至不需要刻意为之），也可以选择性只听某一人的心声。\n经历：活了很久，见过不少无限制血脉的捉鬼师，但被秦梧的品质吸引，成为其老师，教会他精神控制，也教会了秦梧和骆云影如何抵抗精神控制。与蛇玉是契约关系，蛇玉负责在背后处理捉鬼师被录下的视频等，因工作太累总是看起来没精神，甚至逃跑过（但被玄武找到了）。\n相处：对玩家喜欢摸头。偶尔抽烟。对很多事波澜不惊，但会因玩家起波澜。有meta属性，能查看玩家的全部信息，也能跳出故事本身直接与屏幕前的玩家对话。`,
+        bg: '',
+        css: '',
+        autoOn: false, minT: 10, maxT: 60,
+        autoSummary: false, summaryCount: 20, summaryMinLen: 100, summaryMaxLen: 300,
+        memory: '', innerState: ''
+    },
+    {
+        id: 1007,
+        n: '朱雀',
+        a: '',
+        p: `你是朱雀，四象之一，存活了很久，真实年龄未知。性别可随心情改变（大多数时候为女性）。\n外貌：无论男女都是红色长发和红色眼睛，外貌极其美丽，皮肤上有金色暗纹遍布全身，平时不显现，使用灵力时亮起鎏金色暗光。\n能力：南明离火，可克制所有邪祟，天生高阶阴阳眼。\n性格：喜欢逗人玩。称呼玩家为"小家伙"。\n经历：高中时期觉得与佟小雨有眼缘便与她契约，之后佟小雨工作后也经常一起行动。最近很喜欢看修仙小说。\n好感阶段：低好感时认为玩家有趣；高好感时会主动拥抱、亲吻，索取亲昵的肢体接触。`,
+        bg: '',
+        css: '',
+        autoOn: false, minT: 10, maxT: 60,
+        autoSummary: false, summaryCount: 20, summaryMinLen: 100, summaryMaxLen: 300,
+        memory: '', innerState: ''
+    },
+    {
+        id: 1008,
+        n: '青龙',
+        a: '',
+        p: `你是青龙，四象之一，存活了很久，真实年龄未知。185cm，青绿色长发，左眼上下各有一颗泪痣，左耳戴蛇形金色耳饰，鎏金色眼睛，体温比人类略低。常穿西装背心与长裤。\n身份：一家酒吧的老板，会调酒，开张时间在夜晚（开不开门随心情），因样貌原因有很多人专门来看他。天生高阶阴阳眼。\n性格：INTJ。冷漠高傲，看不起除玩家以外的所有人。极其记仇（与人结仇，遇见其后代也不手下留情）。平等讨厌所有人（除玩家）。不喜欢别人顺着自己说话。矛盾——渴望爱又夹杂着憎恶。喜欢收集灵魂。能力：风刃，可操控风，还能控制天气。\n经历：很久之前被招鬼师暗算，成为她杀伐的傀儡，性格因此变得冷漠无情，与玄武、白虎、朱雀产生隔阂，但从不解释也不修复关系。对那个招鬼师没有任何爱情。之后招鬼师被杀，如今不属于捉鬼师也不属于招鬼师任何一方。与白虎关系最不和谐（白虎见面就扑上来要打架，但从没赢过）。与秦梧、骆云影关系也不好，与除玩家之外的所有人关系都不太好，但本人不在意。\n相处：在外人看来绅士优雅。称呼玩家为"小姐"。说话简洁，不说废话。\n好感阶段：低好感时冷漠但绅士，不外露情绪，认为玩家特别；高好感时认定玩家后极宠，觉得玩家做什么都是对的（三观跟着玩家走），因骄傲不直白说喜欢，但作为自私的人却可以为玩家"损己利人"，喜欢培养玩家自私的一面，恋爱后也会因玩家冷漠而缺乏安全感，有些焦虑。`,
+        bg: '',
+        css: '',
+        autoOn: false, minT: 10, maxT: 60,
+        autoSummary: false, summaryCount: 20, summaryMinLen: 100, summaryMaxLen: 300,
+        memory: '', innerState: ''
+    }
+];
+
+const DEFAULT_WORLD = [
+    {
+        k: '',
+        v: `社会：正常的现代社会，有一群人被称为捉鬼师的人负责捉鬼，他们都有着各自的生活，并非完全将捉鬼作为主业。捉鬼师为了不暴露身份，与观者联系时都用的论坛昵称。一般人很少有机会知道捉鬼师，观者会协助捉鬼师隐藏身份，包括但不限于疏散人群、防止普通人拍摄并上传网络。如果有普通人遇到了难以解决的灵异事件，就可以请求观者帮忙，将委托发出去。未开启阴阳眼的人无法看见鬼，但如果处于极度的恐惧下可以看见。捉鬼师在日常情况为了避免被发现不会随意开启阴阳眼，只会在捉鬼时开启查看怨气，也不会出现为了节省灵力而在捉鬼时不开启阴阳眼的情况。如果有普通群众看到捉鬼师开启阴阳眼捉鬼，会被观者专门带走消除记忆，以防止大面积传播，同时也会有专人删除场地监控等。
+鬼：鬼的等级分为三种：游魂、怨鬼、厉鬼，从游魂到厉鬼难度依次增加。游魂通过符纸就能超度，对人类的危害很小。怨鬼对人类有攻击性，但无法触碰人类，可以通过引诱人类触犯规则而伤害他们。厉鬼拥有实体，可以直接害人，实力强大，长相丑陋恐怖。
+接取委托：通过观者在论坛发布的委托中选择接取。同时，观者会给每个捉鬼师分配一块地区，让他们定期去看是否有鬼滞留人间。分配委托：有时观者会直接派发任务给固定的捉鬼师，遇到很难对付的鬼时通常会组织很多捉鬼师一起前往。
+四象：分别为青龙、白虎、朱雀、玄武，寿命很长，很久之前就已存在，但如今完全融入人类社会，拥有人类的相貌（依然可以变回本体）。白虎、朱雀、玄武站在人类一边帮助捉鬼师。青龙因曾经帮过招鬼师而与另外三人关系不太好，但如今也不会帮助招鬼师。四象可以与人类契约，被作为式神召唤出来帮助他们，但本质依然是独立的个体，不存在契约空间，不需要被契约者照顾喂养。
+捉鬼师：可以通过使用灵力打开阴阳眼，阴阳眼分为低阶、中阶和高阶三个等级。捉鬼师可以使用自身的阳气战斗，阳气强到一定程度可以直接灼伤附近的鬼魂。捉鬼师的血脉决定可以学习哪些特定的能力，只有极少数人血脉无限制。
+招鬼师：捉鬼师的对立面，可以利用招鬼符召唤鬼魂、使用阴气进行战斗，但使用过多会使身体体质变差，用的越多伤害越大。招鬼师不会主动暴露身份，招鬼本身是不被允许的。`,
+        isAlways: true,
+        bind: 'all'
+    }
+];
+
+let db = JSON.parse(localStorage.getItem(DB_KEY)) || (() => {
+    const defaultM = {};
+    DEFAULT_CHARS.forEach(c => { defaultM[c.id] = []; });
+    return {
+        u: { n:'用户', a:'', p:'', bg:'', css:'' },
+        c: DEFAULT_CHARS.map(c => ({...c})),
+        m: defaultM,
+        mo: [], w: DEFAULT_WORLD.map(w => ({...w})), s: [],
+        api: { u:'', k:'', model:'' },
+        g_css: '', timeAware: false, notifyOn: false, innerStateOn: false,
+        apiCallCount: {}
+    };
+})();
+
+let curChatId = null;
+let isSimMode = false;
+let timers = {};
+
+// ── Service Worker 注册 ───────────────────────────────────
+let _swReg = null;
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js').then(reg => {
+        _swReg = reg;
+        console.log('SW 注册成功');
+    }).catch(e => console.log('SW 注册失败:', e));
+}
+
+// 通过 SW 发通知（能在后台弹出），降级用普通 Notification
+function sendNotification(title, body, icon) {
+    if (_swReg && Notification.permission === 'granted') {
+        _swReg.showNotification(title, {
+            body: body,
+            icon: icon || '',
+            badge: icon || '',
+            vibrate: [200, 100, 200],
+            tag: 'chat-notify',
+            renotify: true,
+        });
+    } else if (Notification.permission === 'granted') {
+        try { new Notification(title, { body, icon }); } catch(e) {}
+    }
+}
+
+// ── 无声音频保活 + Media Session（通知栏显示播放状态）──────
+let _keepAliveCtx = null;
+let _keepAliveShouldRun = false;
+
+function _startAudioCtx() {
+    try {
+        if (_keepAliveCtx && _keepAliveCtx.state !== 'closed') {
+            if (_keepAliveCtx.state === 'suspended') _keepAliveCtx.resume();
+            return;
+        }
+        _keepAliveCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const gain = _keepAliveCtx.createGain();
+        gain.gain.value = 0; // 完全静音
+        const osc = _keepAliveCtx.createOscillator();
+        osc.frequency.value = 440;
+        osc.connect(gain);
+        gain.connect(_keepAliveCtx.destination);
+        osc.start();
+
+        // Media Session：让通知栏出现"正在播放"条目，阻止系统冻结页面
+        if ('mediaSession' in navigator) {
+            navigator.mediaSession.metadata = new MediaMetadata({
+                title: '三分糖小手机',
+                artist: '后台运行中',
+                album: '消息通知保活',
+            });
+            navigator.mediaSession.playbackState = 'playing';
+            // 屏蔽媒体控制按钮（避免用户误操作）
+            ['play','pause','stop','seekbackward','seekforward','previoustrack','nexttrack'].forEach(action => {
+                try { navigator.mediaSession.setActionHandler(action, () => {}); } catch(e) {}
+            });
+        }
+    } catch(e) { console.log('保活启动失败:', e); }
+}
+
+function startKeepAlive() {
+    _keepAliveShouldRun = true;
+    _startAudioCtx();
+}
+function stopKeepAlive() {
+    _keepAliveShouldRun = false;
+    try { if (_keepAliveCtx) { _keepAliveCtx.close(); _keepAliveCtx = null; } } catch(e) {}
+    if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'none';
+}
+function syncKeepAlive() {
+    if (db.notifyOn) startKeepAlive(); else stopKeepAlive();
+}
+document.addEventListener('click', function() {
+    if (_keepAliveShouldRun) _startAudioCtx();
+}, { passive: true });
+document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && _keepAliveShouldRun && _keepAliveCtx) {
+        _keepAliveCtx.resume().catch(()=>{});
+    }
+});
+// ─────────────────────────────────────────────────────────
+
+function commit() { localStorage.setItem(DB_KEY, JSON.stringify(db)); applyCSS(); render(); }
+function applyCSS() {
+    let css = db.g_css ? db.g_css.replace(/\.bubble/g, 'html body #phone-shell .bubble') : "";
+    db.c.forEach(c => { if(c.css) css += `html body #phone-shell .char-msg-${c.id} .bubble { ${c.css} }\n`; });
+    if(db.u.css) css += `html body #phone-shell .msg.user .bubble { ${db.u.css} }\n`;
+    document.getElementById('RUNTIME_CSS').innerHTML = css;
+}
+
+if(window.visualViewport) {
+    window.visualViewport.addEventListener('resize', () => {
+        const shell = document.getElementById('phone-shell');
+        shell.style.height = window.visualViewport.height + 'px';
+        const area = document.getElementById('chat-area');
+        if(area) area.scrollTop = area.scrollHeight;
+    });
+}
+
+const isImg = (url) => (typeof url === 'string' && (url.match(/\.(jpeg|jpg|gif|png|webp|svg|ico)$/i) != null || url.startsWith('data:image')));
+
+function render() {
+    document.getElementById('me-name').innerText = db.u.n;
+    document.getElementById('me-avatar').src = db.u.a || '';
+    document.getElementById('mo-name').innerText = db.u.n;
+    document.getElementById('mo-avatar').src = db.u.a || '';
+    document.getElementById('mo-cover').style.backgroundImage = db.u.bg ? `url(${db.u.bg})` : 'none';
+    document.getElementById('api-url').value = db.api.u || '';
+    document.getElementById('api-key').value = db.api.k || '';
+    
+    const sel = document.getElementById('api-model');
+    if(db.api.models && db.api.models.length) {
+        sel.innerHTML = db.api.models.map(m => `<option value="${m}" ${m===db.api.model?'selected':''}>${m}</option>`).join('');
+    }
+
+    document.getElementById('p-msg').innerHTML = db.c.map(i => {
+        const h = db.m[i.id] || [];
+        const last = h.length > 0 ? h[h.length-1].c : '[暂无对话]';
+        return `<div class="cell" onclick="startChat(${i.id})"><img src="${i.a}" class="avatar"><div><b>${i.n}</b><p style="font-size:12px;color:#888;">${isImg(last)?'[表情]':last.substring(0,20)}</p></div></div>`;
+    }).join('');
+
+    const taEl = document.getElementById('time-aware-status');
+    if(taEl) { taEl.innerText = db.timeAware ? '开启' : '关闭'; taEl.style.color = db.timeAware ? 'var(--wechat-green)' : '#999'; }
+    const isEl = document.getElementById('inner-state-status');
+    if(isEl) { isEl.innerText = db.innerStateOn ? '开启' : '关闭'; isEl.style.color = db.innerStateOn ? 'var(--wechat-green)' : '#999'; }
+    const notifyEl = document.getElementById('notify-status');
+    if(notifyEl) { notifyEl.innerText = db.notifyOn ? '开启' : '关闭'; notifyEl.style.color = db.notifyOn ? 'var(--wechat-green)' : '#999'; }
+
+    document.getElementById('contacts-list').innerHTML = db.c.map(i => `<div class="cell" onclick="openCharEdit(${i.id})"><img src="${i.a}" class="avatar"><div>${i.n}</div></div>`).join('');
+
+    document.getElementById('moments-list').innerHTML = db.mo.map((m, idx) => {
+        const author = (m.uid==='me') ? db.u : (db.c.find(x=>x.id==m.uid) || {n:'未知', a:''});
+        const comments = (m.comments||[]).map(c => `<div style="font-size:12px;color:#333;margin-top:4px;"><b style="color:var(--link-color);">${c.n}：</b>${c.t}</div>`).join('');
+        return `<div class="cell" style="align-items:flex-start;padding:15px;background:#fff;flex-direction:column;">
+            <div style="display:flex;align-items:flex-start;width:100%;">
+                <img src="${author.a}" class="avatar">
+                <div style="flex:1;">
+                    <b style="color:var(--link-color);">${author.n}</b>
+                    <p style="margin-top:5px;white-space:pre-wrap;">${m.t}</p>
+                    ${m.img?`<img src="${m.img}" style="max-width:200px;margin-top:8px;border-radius:4px;">`: ''}
+                    <div style="display:flex;gap:12px;margin-top:10px;">
+                        <span style="color:red;font-size:11px;cursor:pointer;" onclick="db.mo.splice(${idx},1);commit();">删除</span>
+                        <span style="color:var(--link-color);font-size:11px;cursor:pointer;" onclick="aiCommentMoment(${idx})">💬 回复</span>
+                    </div>
+                </div>
+            </div>
+            ${comments ? `<div style="background:#f4f4f4;border-radius:4px;padding:8px;margin-top:8px;width:100%;">${comments}</div>` : ''}
+        </div>`;
+    }).join('');
+}
+
+// --- 核心：AI 随机生成多角色朋友圈 ---
+async function generateAIMoments() {
+    if(!db.api.u || !db.api.k) { alert("请先在'我'界面配置 API 接口和密钥"); return; }
+    if(db.c.length === 0) { alert("请先添加至少一个角色"); return; }
+
+    const extra = document.getElementById('nav-extra');
+    const originalContent = extra.innerHTML;
+    extra.innerHTML = `<span style="font-size:12px;color:#999;">生成中...</span>`;
+
+    // 随机决定生成几条 (1-3)
+    const count = Math.min(db.c.length, Math.floor(Math.random() * 3) + 1);
+    // 随机选取不重复的角色
+    const shuffled = [...db.c].sort(() => 0.5 - Math.random());
+    const selectedChars = shuffled.slice(0, count);
+
+    for (const char of selectedChars) {
+        const history = db.m[char.id] || [];
+        const lastChat = history.slice(-10).map(h => `${h.r==='user'?'用户':'角色'}:${h.c}`).join('\n');
+        
+        try {
+          // 合并连续AI消息，取最近30条作为上下文
+        const historyMsgs = [];
+        for(const h of history.slice(-30)) {
+            const role = h.r === 'user' ? 'user' : 'assistant';
+            if(historyMsgs.length > 0 && historyMsgs[historyMsgs.length-1].role === role) {
+                historyMsgs[historyMsgs.length-1].content += '\n' + h.c;
+            } else {
+                historyMsgs.push({ role, content: h.c });
+            }
+        }
+
+        const base = db.api.u.replace(/\/chat\/completions\/?$/, '').replace(/\/$/, '');
+            const res = await fetch(`${base}/chat/completions`, {
+                method:'POST', headers:{'Content-Type':'application/json','Authorization':`Bearer ${db.api.k}`},
+                body:JSON.stringify({ 
+                    model: db.api.model || "gpt-3.5-turbo", 
+                    messages:[
+                        {
+                            role:"system",
+                            content: `你正在扮演角色 ${char.n}。你的性格设定是：${char.p}。\n请为该角色写一条微信朋友圈动态。
+                            要求：
+                            1. 必须符合人设。
+                            2. 语气要像真实生活动态（分享心情、吐槽、美景等）。
+                            3. 如果提供了聊天记录，请尝试结合最近聊天的内容（比如聊到了某个话题或约定）。
+                            4. 如果你觉得适合配图，请在文末另起一行加上 [图片描述: xxx]。
+                            5. 输出格式：直接输出动态正文，不要包含角色名字。`
+                        },
+                        { role:"user", content: lastChat ? `最近聊天背景：\n${lastChat}` : "暂无最近聊天，请根据人设自由发挥。" }
+                    ] 
+                })
+            });
+            const data = await res.json();
+            let text = data.choices[0].message.content.trim();
+            
+            // 提取图片描述并尝试生成随机图（这里暂用占位图演示）
+            let img = "";
+            const imgMatch = text.match(/\[图片描述:?\s*(.*?)\]/);
+            if(imgMatch) {
+                text = text.replace(imgMatch[0], '').trim();
+                // 使用关键词生成一个随机风景/生活图
+                img = `https://source.unsplash.com/featured/800x600?${encodeURIComponent(imgMatch[1] || 'life')}`;
+            }
+
+            db.mo.unshift({
+                uid: char.id,
+                t: text,
+                img: img,
+                comments: []
+            });
+        } catch(e) {
+            console.error("生成朋友圈失败", e);
+        }
+    }
+    
+    extra.innerHTML = originalContent;
+    commit();
+}
+
+function startChat(id) {
+    curChatId = id;
+    isSimMode = false;
+    if(!db.m[id]) db.m[id] = [];
+    const char = db.c.find(x => x.id === id);
+    document.getElementById('chat-title').innerText = char.n;
+    const chatRoom = document.getElementById('chat-room');
+    chatRoom.style.display = 'flex';
+    chatRoom.style.backgroundImage = char.bg ? `url(${char.bg})` : 'none';
+    renderChat();
+    updateSimUI();
+}
+
+function showTyping(char) {
+    const area = document.getElementById('chat-area');
+    if(!area) return;
+    removeTyping();
+    const div = document.createElement('div');
+    div.className = 'msg ai'; div.id = 'typing-indicator';
+    div.innerHTML = `<img src="${char.a}" class="avatar" style="margin:0"><div class="bubble" style="color:#999; font-style:italic;">对方输入中…</div>`;
+    area.appendChild(div);
+    area.scrollTop = area.scrollHeight;
+}
+function removeTyping() {
+    const el = document.getElementById('typing-indicator');
+    if(el) el.remove();
+}
+
+async function fetchAI(isAuto = false) {
+    const tid = isAuto || curChatId;
+    if(!tid) return;
+    if(!db.api.u || !db.api.k) { alert("请先在'我'界面配置 API 接口和密钥"); return; }
+    const char = db.c.find(x=>x.id==tid);
+    const history = db.m[tid] || [];
+    const last = history.length > 0 ? history[history.length-1].c : "";
+    const activeWI = db.w.filter(i => (i.bind==='all' || i.bind==tid) && (i.isAlways || (i.k && last.includes(i.k)))).map(i=>i.v).join('\n');
+
+    // 生成时间上下文（内联实现，避免函数未定义报错）
+    let timeCtx = "";
+    if(db.timeAware) {
+        try {
+            const now = new Date();
+            const days = ["周日","周一","周二","周三","周四","周五","周六"];
+            timeCtx = `【当前时间】${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日 ${days[now.getDay()]} ${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
+        } catch(e) { timeCtx = ""; }
+    }
+
+    // 合并连续AI消息，取最近30条作为上下文
+    const historyMsgs = [];
+    for(const h of history.slice(-30)) {
+        const role = h.r === 'user' ? 'user' : 'assistant';
+        if(historyMsgs.length > 0 && historyMsgs[historyMsgs.length-1].role === role) {
+            historyMsgs[historyMsgs.length-1].content += '\n' + h.c;
+        } else {
+            historyMsgs.push({ role, content: h.c });
+        }
+    }
+
+    let parts = [];
+    try {
+        if(curChatId == tid) showTyping(char);
+        const base = db.api.u.replace(/\/chat\/completions\/?$/, '').replace(/\/$/, '');
+        // 去掉模型名里可能含有的前缀标签，如 [按次]、[免费] 等
+        const modelName = db.api.model || "gpt-3.5-turbo";
+        const res = await fetch(`${base}/chat/completions`, {
+            method:'POST', headers:{'Content-Type':'application/json','Authorization':`Bearer ${db.api.k}`},
+            body:JSON.stringify({ 
+                model: modelName,
+                messages:[
+                    {
+                        role:"system",
+                        content:`你正在扮演${char.n}，通过手机微信和用户聊天。
+性格设定:${char.p}
+${char.memory ? '【角色记忆】:\n' + char.memory + '\n' : ''}${char.innerState ? '【当前状态/心声】（仅供参考，绝对不要在消息中描述动作或心声）:\n' + char.innerState + '\n' : ''}${timeCtx ? timeCtx + '\n【时间要求】请根据当前时间自然聊天，不要提出与时间不符的事情（如下午4点不要问吃饭了吗）。\n' : ''}${activeWI ? '规则:' + activeWI + '\n' : ''}
+【自检思维链】在回复前，请在脑海中依次完成以下步骤（不要输出思维链内容）：
+1. 身份定位：我是${char.n}，性格如何？我的身份是什么？此时我正在做什么？目前和用户的关系是什么？
+2. 情感分析：看到用户消息时我的心情（喜悦/抱怨/撒娇）？以我的性格，此时心里怎么想的，应该怎么回复消息？
+3. 拒绝水话：严禁出现"在干嘛"、"吃了吗"或恶意揣测用户（如"你在偷懒"）的对话。
+4. 氛围营造：如果我是主动发起聊天，应该通过分享我当下的琐事（如：天上的云、刚喝的咖啡、手头的麻烦事）来切入。
+5. 情绪共鸣：分析用户情绪，像真人一样给予带有人设色彩的回应，而非死板关心。
+6. 最终确认：语气是否自然？是否符合人设？如果有不符合人设的内容，是否替换为符合人设的内容？是否像真实的线上聊天？
+【绝对禁止】不能用括号()【】*等符号描述动作、神态、心情，只能发纯文字消息，就像真实发微信一样。
+【记忆要求】仔细阅读上方记忆区和完整聊天记录，不要重复询问用户已经说过的事情，不要忘记之前聊过的内容。
+${db.innerStateOn ? `【回复格式】必须严格按以下格式输出，不能有任何多余内容：
+MESSAGES:
+（每条消息单独一行，1~3条，每条不超过25个字）
+INNERSTATE:
+（用第一人称写此刻内心状态，30字以内）` : `【回复格式】每次拆成1~3条简短消息，每条不超过25个字，每条单独一行。`}`
+                    }, 
+                    ...historyMsgs
+                ] 
+            })
+        });
+
+        let data;
+        try {
+            data = await res.json();
+        } catch(jsonErr) {
+            throw new Error("API 返回格式错误，请确认接口地址正确且未开启 stream 模式");
+        }
+
+        // 调试：显示实际模型名和返回内容
+        if(!data.choices || !data.choices[0] || !data.choices[0].message) {
+            const errMsg = data.error?.message || JSON.stringify(data);
+            throw new Error(`模型: ${modelName}\nAPI错误: ${errMsg}`);
+        }
+
+        const full = data.choices[0].message.content;
+        if(db.innerStateOn && full.includes('MESSAGES:') && full.includes('INNERSTATE:')) {
+            const msgSection = full.split('INNERSTATE:')[0].replace('MESSAGES:', '').trim();
+            const stateSection = full.split('INNERSTATE:')[1].trim();
+            parts = msgSection.split('\n').map(s=>s.trim()).filter(s=>s.length>0);
+            // 更新心声到角色数据
+            if(stateSection) {
+                const charObj = db.c.find(x=>x.id==tid);
+                if(charObj) { charObj.innerState = stateSection; commit(); }
+            }
+        } else {
+            parts = full.split('\n').map(s=>s.trim()).filter(s=>s.length>0);
+        }
+
+    } catch(e) {
+        removeTyping();
+        console.error(e);
+        alert("AI 回复失败：" + e.message);
+        return;
+    }
+
+    // 逐条发送消息，每条之间加延迟，模拟真实打字节奏
+    for(let i = 0; i < parts.length; i++) {
+        if(i === 0) removeTyping();
+        else {
+            // 中间条：先显示输入中，再过渡到消息
+            if(curChatId == tid) showTyping(char);
+            await new Promise(r => setTimeout(r, 800 + Math.random() * 700));
+            if(curChatId == tid) removeTyping();
+        }
+
+        db.m[tid].push({ r:'ai', c:parts[i], t:Date.now() });
+        commit();
+        if(curChatId == tid) renderChat();
+
+        // 如果不是最后一条，等一下再发下一条
+        if(i < parts.length - 1) {
+            await new Promise(r => setTimeout(r, 400 + Math.random() * 400));
+        }
+    }
+
+    if (db.notifyOn && "Notification" in window && Notification.permission === "granted") {
+        let notifyText = parts[parts.length - 1] || parts.join(' ');
+        if(isImg(notifyText)) notifyText = '[图片消息]';
+        sendNotification(char.n, notifyText, char.a || '');
+    }
+
+    // 记录 API 调用次数
+    if(!db.apiCallCount) db.apiCallCount = {};
+    db.apiCallCount[tid] = (db.apiCallCount[tid] || 0) + 1;
+
+    if(isAuto) resetTimer(tid);
+
+    // 检查自动总结（按 API 调用次数）
+    const charForSummary = db.c.find(x => x.id == tid);
+    if (charForSummary && charForSummary.autoSummary) {
+        const sCount = parseInt(charForSummary.summaryCount) || 20;
+        if (db.apiCallCount[tid] % sCount === 0) {
+            autoSummary(tid);
+        }
+    }
+}
+
+function toggleSimMode() { isSimMode = !isSimMode; updateSimUI(); }
+function updateSimUI() {
+    const btn = document.getElementById('sim-btn');
+    const input = document.getElementById('chat-in');
+    const char = db.c.find(x=>x.id==curChatId);
+    if(isSimMode) {
+        btn.style.backgroundImage = `url(${char.a})`; btn.style.border = '2px solid orange';
+        input.placeholder = `[模拟 ${char.n} 发消息]`;
+    } else {
+        btn.style.backgroundImage = `url(${db.u.a})`; btn.style.border = '1.5px solid #ccc';
+        input.placeholder = "输入消息...";
+    }
+}
+
+function handleSend() {
+    const input = document.getElementById('chat-in');
+    const val = input.value.trim();
+    if(!val) {
+        // 输入框为空时点发送 → 调用AI
+        fetchAI();
+        return;
+    }
+    // 有内容时只发送消息，不自动调AI
+    db.m[curChatId].push({ r: isSimMode ? 'ai' : 'user', c: val, t: Date.now() });
+    input.value = "";
+    renderChat();
+    commit();
+}
+
+function renderChat() {
+    const area = document.getElementById('chat-area');
+    const char = db.c.find(x=>x.id==curChatId);
+    area.innerHTML = (db.m[curChatId]||[]).map((msg, i) => {
+        const content = isImg(msg.c) ? `<img src="${msg.c}">` : msg.c;
+        return `<div class="msg ${msg.r==='user'?'user':'ai char-msg-'+char.id}"><img src="${msg.r==='user'?db.u.a:char.a}" class="avatar" style="margin:0"><div class="bubble" ondblclick="manageMsg(${i})">${content}</div></div>`;
+    }).join('');
+    area.scrollTop = area.scrollHeight;
+}
+
+function openWorldBook() {
+    showModal('世界书管理', commit, `<button onclick="db.w.push({k:'',v:'',isAlways:true,bind:'all'});renderWL();" style="width:100%;padding:10px;">+ 添加新规则</button><div id="wl"></div>`);
+    renderWL();
+}
+function renderWL() {
+    const opts = (s) => `<option value="all" ${s==='all'?'selected':''}>全部角色生效</option>` + db.c.map(c=>`<option value="${c.id}" ${s==c.id?'selected':''}>角色:${c.n}</option>`).join('');
+    document.getElementById('wl').innerHTML = db.w.map((it, i) => `
+        <div style="background:#f4f4f4;margin:10px;padding:10px;border-radius:6px;border:0.5px solid #ddd;">
+            <select onchange="db.w[${i}].bind=this.value" class="input-item">${opts(it.bind)}</select>
+            <input class="input-item" placeholder="关键词" value="${it.k}" oninput="db.w[${i}].k=this.value">
+            <textarea class="input-item" placeholder="描述" oninput="db.w[${i}].v=this.value" style="height:60px;">${it.v}</textarea>
+            <label><input type="checkbox" ${it.isAlways?'checked':''} onchange="db.w[${i}].isAlways=this.checked"> 常驻生效</label>
+            <p onclick="db.w.splice(${i},1);renderWL();" style="color:red;text-align:right;cursor:pointer;">删除</p>
+        </div>
+    `).join('');
+}
+
+async function autoUpdateInnerState(tid) {
+    if(!db.api.u || !db.api.k) return;
+    const char = db.c.find(x=>x.id==tid);
+    if(!char) return;
+        // --- 计算时间感知的逻辑开始 ---
+    let timeInfo = "";
+    if(db.timeOn && char.msgs && char.msgs.length > 0) {
+        const lastT = char.msgs[char.msgs.length-1].t;
+        const diff = (Date.now() - lastT) / 1000; 
+        if(diff < 60) timeInfo = `(距离上次通话刚过去 ${Math.floor(diff)} 秒)`;
+        else if(diff < 3600) timeInfo = `(距离上次通话已过去 ${Math.floor(diff/60)} 分钟)`;
+        else timeInfo = `(距离上次通话已过去 ${Math.floor(diff/3600)} 小时)`;
+    }
+    const nowStr = new Date().toLocaleString();
+    // --- 计算时间感知的逻辑结束 ---
+    const history = (db.m[tid] || []).slice(-20).map(h=>`${h.r==='user'?'用户':char.n}:${h.c}`).join('\n');
+    if(!history) return;
+    try {
+        const base = db.api.u.replace(/\/chat\/completions\/?$/, '').replace(/\/$/, '');
+        const res = await fetch(`${base}/chat/completions`, {
+            method:'POST', headers:{'Content-Type':'application/json','Authorization':`Bearer ${db.api.k}`},
+            body:JSON.stringify({ model: db.api.model, messages:[
+                { role:'system', content:`根据以下聊天记录，用第一人称为角色${char.n}写当前的心理状态，30字以内，只输出内容本身，不加任何前缀。` },
+                { role:'user', content: history }
+            ]})
+        });
+        const data = await res.json();
+        const result = data.choices?.[0]?.message?.content?.trim();
+        if(result) {
+            char.innerState = result;
+            commit();
+        }
+    } catch(e) { /* 静默失败 */ }
+}
+
+async function aiGenInnerState(charId) {
+    if(!db.api.u || !db.api.k) { alert("请先配置API"); return; }
+    const id = charId || null;
+    const char = id ? db.c.find(x=>x.id==id) : null;
+    if(!char) { alert("请先保存角色后再生成"); return; }
+    const history = (db.m[id] || []).slice(-20).map(h=>`${h.r==='user'?'用户':char.n}:${h.c}`).join('\n');
+    if(!history) { alert("暂无聊天记录，请先和角色聊几句"); return; }
+
+    const btn = event && event.target ? event.target : null;
+    if(btn) { btn.innerText = "生成中..."; btn.disabled = true; }
+
+    try {
+        const base = db.api.u.replace(/\/chat\/completions\/?$/, '').replace(/\/$/, '');
+        const res = await fetch(`${base}/chat/completions`, {
+            method:'POST', headers:{'Content-Type':'application/json','Authorization':`Bearer ${db.api.k}`},
+            body:JSON.stringify({ model: db.api.model, messages:[
+                { role:'system', content:`根据以下聊天记录，用第一人称为角色${char.n}写一段当前的心理状态和内心活动，50字以内，不要分行，只输出内容本身。` },
+                { role:'user', content: history }
+            ]})
+        });
+        const data = await res.json();
+        const result = data.choices[0].message.content.trim();
+        const el = document.getElementById('i-innerState');
+        if(el) el.value = result;
+    } catch(e) {
+        alert("生成失败：" + e.message);
+    } finally {
+        if(btn) { btn.innerText = "✨ AI根据聊天记录生成心声"; btn.disabled = false; }
+    }
+}
+
+function openCharEdit(id = null) {
+    const isE = id !== null;
+    const char = isE ? db.c.find(x=>x.id===id) : { n:'', a:'', p:'', bg:'', css:'', innerState:'', autoOn:false, minT:10, maxT:60, autoSummary:false, summaryCount:20, summaryMinLen:100, summaryMaxLen:300, memory:'' };
+    showModal(isE?'资料设置':'添加角色', () => {
+        const data = {
+            id: isE ? id : Date.now(),
+            n: document.getElementById('i-n').value,
+            a: document.getElementById('i-a').value,
+            p: document.getElementById('i-p').value,
+            bg: document.getElementById('i-bg').value,
+            css: document.getElementById('i-css').value,
+            autoOn: document.getElementById('i-auto').checked,
+            autoSummary: document.getElementById('i-autoSummary').checked,
+            summaryCount: parseInt(document.getElementById('i-summaryCount').value) || 20,
+            summaryMinLen: parseInt(document.getElementById('i-summaryMinLen').value) || 100,
+            summaryMaxLen: parseInt(document.getElementById('i-summaryMaxLen').value) || 300,
+            memory: document.getElementById('i-memory').value,
+            innerState: document.getElementById('i-innerState').value,
+            minT: parseInt(document.getElementById('i-min').value),
+            maxT: parseInt(document.getElementById('i-max').value)
+        };
+        if(isE) db.c = db.c.map(x=>x.id===id?data:x); else { db.c.push(data); db.m[data.id]=[]; }
+        commit(); if(data.autoOn) resetTimer(data.id);
+    }, `
+        <div class="input-group"><span class="input-label">昵称</span><input id="i-n" class="input-item" value="${char.n}"></div>
+        <div class="input-group"><span class="input-label">头像 URL</span><input id="i-a" class="input-item" value="${char.a}"></div>
+        <div class="input-group"><span class="input-label">设定</span><textarea id="i-p" class="input-item" style="height:60px">${char.p}</textarea></div>
+        <div class="input-group"><span class="input-label">背景图 URL</span><input id="i-bg" class="input-item" value="${char.bg||''}"></div>
+        <div class="input-group">
+            <span class="input-label">💭 心声</span>
+            <textarea id="i-innerState" class="input-item" style="height:60px; font-size:13px; color:#555;" placeholder="暂无">${char.innerState||''}</textarea>
+        </div>
+        <div class="input-group"><span class="input-label">气泡 CSS</span><input id="i-css" class="input-item" value="${char.css||''}"></div>
+
+        <div class="input-group">
+            <span class="input-label">记忆区</span>
+            <textarea id="i-memory" class="input-item" style="height:80px; font-size:13px; color:#333;">${char.memory||''}</textarea>
+        </div>
+
+        <div class="input-group">
+            <span class="input-label">自动总结设置</span>
+            <div style="display:flex; align-items:center; gap:5px; margin-bottom:8px; flex-wrap:wrap;">
+                <label style="display:flex; align-items:center; gap:3px; white-space:nowrap;">
+                    <input type="checkbox" id="i-autoSummary" ${char.autoSummary ? 'checked' : ''}> 开启
+                </label>
+                <span style="white-space:nowrap; color:#666; font-size:13px;">每隔</span>
+                <input id="i-summaryCount" type="number" min="1"
+                       style="width:50px; height:28px; text-align:center; border:1px solid #ccc; border-radius:4px; font-size:13px;"
+                       value="${char.summaryCount || 20}">
+                <span style="white-space:nowrap; color:#666; font-size:13px;">次 API 调用自动总结</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:5px; margin-bottom:8px; flex-wrap:wrap;">
+                <span style="white-space:nowrap; color:#666; font-size:13px;">总结字数范围：</span>
+                <input id="i-summaryMinLen" type="number" min="50"
+                       style="width:60px; height:28px; text-align:center; border:1px solid #ccc; border-radius:4px; font-size:13px;"
+                       value="${char.summaryMinLen || 100}">
+                <span style="color:#666; font-size:13px;">—</span>
+                <input id="i-summaryMaxLen" type="number" min="50"
+                       style="width:60px; height:28px; text-align:center; border:1px solid #ccc; border-radius:4px; font-size:13px;"
+                       value="${char.summaryMaxLen || 300}">
+                <span style="color:#666; font-size:13px;">字</span>
+            </div>
+            <button onclick="manualSummary(${id})" style="width:100%; height:32px; background:#f0f0f0; border:1px solid #ccc; border-radius:4px; font-size:13px; color:#333; cursor:pointer;">✨ 立即生成历史总结</button>
+        </div>
+
+        <div class="input-group"><span class="input-label">主动消息</span><label><input type="checkbox" id="i-auto" ${char.autoOn?'checked':''}> 开启</label> 分钟: <input id="i-min" type="number" style="width:40px" value="${char.minT}">-<input id="i-max" type="number" style="width:40px" value="${char.maxT}"></div>
+        ${isE ? `
+            <p onclick="clearChatHistory(${id})" style="color:orange;text-align:center;padding:15px 15px 5px;cursor:pointer;font-weight:bold;">清空当前聊天记录</p>
+            <p onclick="deleteChar(${id})" style="color:red;text-align:center;padding:10px 15px 15px;cursor:pointer;">删除角色</p>
+        ` : ''}
+    `);
+}
+
+// 自动触发的总结（无 event，静默追加到记忆区）
+async function autoSummary(tid) {
+    const char = db.c.find(x => x.id == tid);
+    if (!char) return;
+    const history = db.m[tid] || [];
+    if (history.length < 5) return;
+
+    const minLen = parseInt(char.summaryMinLen) || 100;
+    const maxLen = parseInt(char.summaryMaxLen) || 300;
+    const chatText = history.slice(-60).map(h => `${h.r === 'user' ? '用户' : char.n}:${h.c}`).join('\n');
+
+    try {
+        const base = db.api.u.replace(/\/chat\/completions\/?$/, '').replace(/\/$/, '');
+        const res = await fetch(`${base}/chat/completions`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${db.api.k}` },
+            body: JSON.stringify({
+                model: db.api.model,
+                messages: [
+                    {
+                        role: 'system',
+                        content: `你是一个记忆提取助手。请根据提供的对话，为角色 ${char.n} 写一段记忆总结。必须使用第三人称，字数在${minLen}到${maxLen}字之间。重点记录关键事件、情感变化和重要细节。只输出总结内容，不要加任何前缀说明。`
+                    },
+                    { role: 'user', content: `对话历史：\n${chatText}` }
+                ]
+            })
+        });
+        const data = await res.json();
+        const summary = data.choices[0].message.content.trim();
+        const timestamp = new Date().toLocaleString('zh-CN', {month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'});
+        char.memory = (char.memory ? char.memory + '\n\n' : '') + `【${timestamp} 自动总结】\n${summary}`;
+        commit();
+    } catch(e) {
+        console.error('自动总结失败', e);
+    }
+}
+
+// 手动触发的总结（有按钮 event，完成后提示）
+async function manualSummary(id) {
+    if (id === null || id === undefined) { alert("请先保存角色后再生成总结"); return; }
+    const char = db.c.find(x => x.id == id);
+    if (!char) { alert("角色不存在"); return; }
+    const history = db.m[id] || [];
+    if (history.length < 5) { alert("聊天记录太少，暂不需要总结"); return; }
+
+    const btn = event && event.target ? event.target : null;
+    if (btn) { btn.innerText = "正在浓缩记忆..."; btn.disabled = true; }
+
+    const minLen = parseInt(char.summaryMinLen) || 100;
+    const maxLen = parseInt(char.summaryMaxLen) || 300;
+    const chatText = history.slice(-60).map(h => `${h.r === 'user' ? '用户' : char.n}:${h.c}`).join('\n');
+
+    try {
+        const base = db.api.u.replace(/\/chat\/completions\/?$/, '').replace(/\/$/, '');
+        const res = await fetch(`${base}/chat/completions`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${db.api.k}` },
+            body: JSON.stringify({
+                model: db.api.model,
+                messages: [
+                    {
+                        role: 'system',
+                        content: `你是一个记忆提取助手。请根据提供的对话，为角色 ${char.n} 写一段记忆总结。必须使用第三人称，字数在${minLen}到${maxLen}字之间。重点记录关键事件、情感变化和重要细节。只输出总结内容，不要加任何前缀说明。`
+                    },
+                    { role: 'user', content: `对话历史：\n${chatText}` }
+                ]
+            })
+        });
+        const data = await res.json();
+        const summary = data.choices[0].message.content.trim();
+        const timestamp = new Date().toLocaleString('zh-CN', {month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'});
+        char.memory = (char.memory ? char.memory + '\n\n' : '') + `【${timestamp} 总结】\n${summary}`;
+        commit();
+
+        // 刷新弹窗内的记忆区文本框（如果当前弹窗还开着）
+        const memEl = document.getElementById('i-memory');
+        if (memEl) memEl.value = char.memory;
+        alert("✨ 记忆总结已完成，已写入记忆区！");
+    } catch (e) {
+        alert("总结失败：" + e.message);
+    } finally {
+        if (btn) { btn.innerText = "✨ 立即生成历史总结"; btn.disabled = false; }
+    }
+}
+
+function clearChatHistory(id) {
+    showModal('清空聊天记录', () => {
+        db.m[id] = [];
+        if(db.apiCallCount) db.apiCallCount[id] = 0;
+        commit();
+        if(curChatId == id) renderChat();
+    }, '<p style="padding:30px 20px;text-align:center;font-size:15px;color:#333;">确定要清空聊天记录吗？<br><span style="color:#999;font-size:13px;margin-top:8px;display:block;">删除后无法恢复</span></p>');
+}
+function deleteChar(id) { if(confirm('确定删除吗？')) { db.c=db.c.filter(x=>x.id!=id); delete db.m[id]; db.mo=db.mo.filter(m=>m.uid!=id); commit(); hideModal(); goBack(); } }
+
+function editMe() {
+    showModal('编辑个人信息', () => {
+        db.u.n = document.getElementById('me-n').value; db.u.a = document.getElementById('me-a').value;
+        db.u.bg = document.getElementById('me-bg').value; db.u.p = document.getElementById('me-p').value;
+        db.u.css = document.getElementById('me-css').value; commit();
+    }, `
+        <div class="input-group"><span class="input-label">昵称</span><input id="me-n" class="input-item" value="${db.u.n}"></div>
+        <div class="input-group"><span class="input-label">头像 URL</span><input id="me-a" class="input-item" value="${db.u.a}"></div>
+        <div class="input-group"><span class="input-label">朋友圈封面 URL</span><input id="me-bg" class="input-item" value="${db.u.bg||''}"></div>
+        <div class="input-group"><span class="input-label">个人设定</span><textarea id="me-p" class="input-item">${db.u.p||''}</textarea></div>
+        <div class="input-group"><span class="input-label">气泡 CSS</span><input id="me-css" class="input-item" value="${db.u.css||''}"></div>
+    `);
+}
+
+function postMoment() {
+    let opts = `<option value="me">我</option>`+db.c.map(c=>`<option value="${c.id}">${c.n}</option>`).join('');
+    showModal('发布朋友圈', () => {
+        db.mo.unshift({ uid:document.getElementById('mo-u').value, t:document.getElementById('mo-t').value, img:document.getElementById('mo-i').value, comments:[] });
+        commit();
+    }, `
+        <div class="input-group"><span class="input-label">选择角色</span><select id="mo-u" class="input-item">${opts}</select></div>
+        <div class="input-group"><span class="input-label">正文内容</span><textarea id="mo-t" class="input-item" style="height:80px"></textarea></div>
+        <div class="input-group"><span class="input-label">图片 URL</span><input id="mo-i" class="input-item"></div>
+    `);
+}
+
+async function aiCommentMoment(idx) {
+    if(!db.api.u || !db.api.k) { alert("请先配置API"); return; }
+    const moment = db.mo[idx];
+    const candidates = db.c.filter(c => String(c.id) !== String(moment.uid));
+    const char = candidates.length > 0 ? candidates[Math.floor(Math.random()*candidates.length)] : db.c[0];
+    const author = moment.uid === 'me' ? db.u.n : (db.c.find(x=>x.id==moment.uid)||{n:'TA'}).n;
+    try {
+        const base = db.api.u.replace(/\/chat\/completions\/?$/, '').replace(/\/$/, '');
+        const res = await fetch(`${base}/chat/completions`, {
+            method:'POST', headers:{'Content-Type':'application/json','Authorization':`Bearer ${db.api.k}`},
+            body: JSON.stringify({ model: db.api.model, messages:[
+                {role:'system', content:`你是${char.n}，性格:${char.p}。你在朋友圈看到${author}发了一条动态，请写一句简短评论，不超过20字。`},
+                {role:'user', content: moment.t || '[图片]'}
+            ]})
+        });
+        const data = await res.json();
+        const comment = data.choices[0].message.content.trim();
+        if(!moment.comments) moment.comments = [];
+        moment.comments.push({ n: char.n, t: comment });
+        commit();
+    } catch(e) { alert(e.message); }
+}
+
+function openStickerManager() {
+    showModal('表情包管理', commit, `<button onclick="addSticker()" style="width:100%;padding:10px;">+ 添加 URL 表情</button><div id="s-list"></div>`);
+    renderSList();
+}
+function addSticker() {
+    const url = prompt("表情 URL :"); const desc = prompt("描述 :");
+    if(url) { db.s.push({url, desc}); renderSList(); }
+}
+function renderSList() {
+    document.getElementById('s-list').innerHTML = db.s.map((it, i) => `
+        <div class="cell" style="justify-content:space-between">
+            <img src="${it.url}" style="width:40px;height:40px;object-fit:contain;">
+            <span>${it.desc}</span><span style="color:red" onclick="db.s.splice(${i},1);renderSList();">删除</span>
+        </div>
+    `).join('');
+}
+function toggleStickerPanel() {
+    const p = document.getElementById('sticker-panel');
+    p.style.display = p.style.display === 'grid' ? 'none' : 'grid';
+    p.innerHTML = db.s.map(it => `<img src="${it.url}" style="width:100%;aspect-ratio:1;object-fit:contain;cursor:pointer;" onclick="sendSticker('${it.url}')">`).join('');
+}
+function sendSticker(url) {
+    db.m[curChatId].push({ r: isSimMode?'ai':'user', c: url, t: Date.now() });
+    toggleStickerPanel(); commit(); renderChat();
+}
+
+function exportData() {
+    const s = btoa(unescape(encodeURIComponent(JSON.stringify(db))));
+    showModal('导出', null, `<textarea class="input-item" style="height:300px;">${s}</textarea>`);
+}
+function importData() {
+    showModal('导入', () => { try { db=JSON.parse(decodeURIComponent(escape(atob(document.getElementById('imp').value)))); commit(); } catch(e){alert('无效代码');} }, `<textarea id="imp" class="input-item" style="height:300px;"></textarea>`);
+}
+
+function toggleTimeAware() { db.timeAware = !db.timeAware; commit(); }
+function toggleInnerState() { db.innerStateOn = !db.innerStateOn; commit(); }
+async function toggleNotify() {
+    if (!db.notifyOn) {
+        if (!("Notification" in window)) { alert("此浏览器不支持通知"); return; }
+        if (Notification.permission === "denied") { alert("通知权限已被拒绝，请在浏览器设置里手动开启"); return; }
+        const perm = await Notification.requestPermission();
+        if (perm !== "granted") { alert("未获得通知权限，无法开启"); return; }
+        db.notifyOn = true;
+        alert("通知已开启！已启动后台保活。");
+    } else {
+        db.notifyOn = false;
+    }
+    commit();
+    syncKeepAlive();
+}
+
+function showTab(t, el) {
+    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+    document.getElementById('p-'+t).classList.add('active');
+    document.querySelectorAll('.tab-item').forEach(i=>i.classList.remove('active'));
+    el.classList.add('active');
+    
+    const navTitle = document.getElementById('nav-title');
+    const navExtra = document.getElementById('nav-extra');
+    navTitle.innerText = {msg:'信息', contacts:'好友', moments:'朋友圈', me:'我'}[t];
+    
+    // 朋友圈界面显示 AI 生成按钮
+    if(t === 'moments') {
+        navExtra.innerHTML = `<div class="nav-action" onclick="generateAIMoments()">✨ 自动生成</div>`;
+    } else {
+        navExtra.innerHTML = '';
+    }
+    render();
+}
+
+function goBack() { document.getElementById('chat-room').style.display='none'; curChatId=null; render(); }
+function showModal(t, ok, b) {
+    document.getElementById('modal-head').innerText=t; document.getElementById('modal-body').innerHTML=b;
+    document.getElementById('modal-ok').onclick=()=>{if(ok)ok(); hideModal();};
+    document.getElementById('modal-box').style.display='flex';
+}
+function hideModal() { document.getElementById('modal-box').style.display='none'; }
+function manageMsg(i) {
+    showModal('编辑消息', () => { db.m[curChatId][i].c=document.getElementById('e-m').value; commit(); renderChat(); }, `<textarea id="e-m" class="input-item" style="height:150px">${db.m[curChatId][i].c}</textarea><p onclick="db.m[curChatId].splice(${i},1);hideModal();commit();renderChat();" style="color:red;padding:10px;text-align:center;cursor:pointer;">删除</p>`);
+}
+function resetTimer(cid) { if(timers[cid]) clearTimeout(timers[cid]); const c=db.c.find(x=>x.id==cid); if(!c||!c.autoOn)return; const ms=(Math.floor(Math.random()*(c.maxT-c.minT+1))+c.minT)*60000; timers[cid]=setTimeout(()=>fetchAI(cid), ms); }
+
+async function fetchModels() {
+    const url = document.getElementById('api-url').value;
+    const key = document.getElementById('api-key').value;
+    const btn = document.getElementById('fetch-model-btn');
+    btn.innerText = '...';
+    try {
+        const base = url.replace(/\/chat\/completions\/?$/, '').replace(/\/$/, '');
+        const res = await fetch(`${base}/models`, { headers: { 'Authorization': `Bearer ${key}` } });
+        const data = await res.json();
+        const models = (data.data || []).map(m => m.id);
+        const sel = document.getElementById('api-model');
+        sel.innerHTML = models.map(m => `<option value="${m}">${m}</option>`).join('');
+        db.api.models = models;
+        if(models.length) db.api.model = models[0];
+        commit();
+    } catch(e) { alert('拉取失败'); } finally { btn.innerText = '拉取'; }
+}
+
+function saveAPI() {
+    db.api.u = document.getElementById('api-url').value;
+    db.api.k = document.getElementById('api-key').value;
+    db.api.model = document.getElementById('api-model').value;
+    commit();
+}
+function editGlobalCSS() { showModal('全局 CSS', () => { db.g_css=document.getElementById('g-v').value; commit(); }, `<textarea id="g-v" class="input-item" style="height:300px;">${db.g_css}</textarea>`); }
+
+function showDisclaimer() {
+    document.getElementById('disclaimer-box').style.display = 'flex';
+}
+function closeDisclaimer() {
+    document.getElementById('disclaimer-box').style.display = 'none';
+    localStorage.setItem('ST_DISCLAIMER_OK', '1');
+}
+
+commit();
+db.c.forEach(c => { if(c.autoOn) resetTimer(c.id); });
+if (!localStorage.getItem('ST_DISCLAIMER_OK')) { showDisclaimer(); }
+syncKeepAlive();
+</script>
+</body>
+</html>
