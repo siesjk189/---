@@ -113,8 +113,8 @@
                 </div>
                 <div onclick="openGamePage()" style="display:flex;align-items:center;background:#fff;border-radius:12px;padding:18px 16px;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,0.08);cursor:pointer;">
                     <div>
-                        <div style="font-weight:bold;font-size:16px;color:#333;"> 小游戏</div>
-                        <div style="font-size:12px;color:#999;margin-top:3px;">和角色一起玩游戏吧</div>
+                        <div style="font-weight:bold;font-size:16px;color:#333;">🎮 小游戏</div>
+                        <div style="font-size:12px;color:#999;margin-top:3px;">和角色一起玩扫雷</div>
                     </div>
                     <div style="margin-left:auto;color:#ccc;font-size:20px;">›</div>
                 </div>
@@ -794,8 +794,8 @@ function removeTyping() {
     if(el) el.remove();
 }
 
-async function fetchAI(targetId = null, isAuto = false) {
-    const tid = targetId || curChatId;
+async function fetchAI(isAuto = false) {
+    const tid = isAuto || curChatId;
     if(!tid) return;
     if(!db.api.u || !db.api.k) { alert("请先在'我'界面配置 API 接口和密钥"); return; }
     const char = db.c.find(x=>x.id==tid);
@@ -998,8 +998,8 @@ async function autoUpdateInnerState(tid) {
     if(!char) return;
         // --- 计算时间感知的逻辑开始 ---
     let timeInfo = "";
-    if(db.timeAware && history && history.length > 0) {
-        const lastT = history[history.length-1].t;
+    if(db.timeOn && char.msgs && char.msgs.length > 0) {
+        const lastT = char.msgs[char.msgs.length-1].t;
         const diff = (Date.now() - lastT) / 1000; 
         if(diff < 60) timeInfo = `(距离上次通话刚过去 ${Math.floor(diff)} 秒)`;
         else if(diff < 3600) timeInfo = `(距离上次通话已过去 ${Math.floor(diff/60)} 分钟)`;
@@ -1355,7 +1355,7 @@ function hideModal() { document.getElementById('modal-box').style.display='none'
 function manageMsg(i) {
     showModal('编辑消息', () => { db.m[curChatId][i].c=document.getElementById('e-m').value; commit(); renderChat(); }, `<textarea id="e-m" class="input-item" style="height:150px">${db.m[curChatId][i].c}</textarea><p onclick="db.m[curChatId].splice(${i},1);hideModal();commit();renderChat();" style="color:red;padding:10px;text-align:center;cursor:pointer;">删除</p>`);
 }
-function resetTimer(cid) { if(timers[cid]) clearTimeout(timers[cid]); const c=db.c.find(x=>x.id==cid); if(!c||!c.autoOn)return; const ms=(Math.floor(Math.random()*(c.maxT-c.minT+1))+c.minT)*60000; timers[cid]=setTimeout(()=>fetchAI(cid, true), ms); }
+function resetTimer(cid) { if(timers[cid]) clearTimeout(timers[cid]); const c=db.c.find(x=>x.id==cid); if(!c||!c.autoOn)return; const ms=(Math.floor(Math.random()*(c.maxT-c.minT+1))+c.minT)*60000; timers[cid]=setTimeout(()=>fetchAI(cid), ms); }
 
 async function fetchModels() {
     const url = document.getElementById('api-url').value;
@@ -1913,14 +1913,14 @@ async function generateForumPosts() {
 
 已知角色：${charInfo || '暂无'}
 
-请生成6条帖子，要求：
-- 类型分布：commission（委托）1条、help（求助）1条、share（见闻）2条、discuss（讨论）2条
-- 发帖人分布：已知角色0-2条（用其论坛昵称，authorId填对应数字），其余为陌生人（authorId填null，自拟昵称）
+请生成10条帖子，要求：
+- 类型分布：commission（委托）2-3条、help（求助）2条、share（见闻）2-3条、discuss（讨论）2条
+- 发帖人分布：已知角色2-3条（用其论坛昵称，authorId填对应数字），其余为陌生人（authorId填null，自拟昵称）
 - 委托帖：具体地点+灵异现象+报酬金额，语气像真实委托
 - 求助帖：捉鬼师描述遭遇，寻求行家建议
 - 见闻帖：目击者叙述，有细节感
 - 讨论帖：行业八卦、技术讨论，有争议性
-- 每帖3-6条回复，回复者也是陌生人或已知角色，有互动感、有情绪
+- 每帖3-9条回复，回复者也是陌生人或已知角色，有互动感、有情绪
 - likes为10-999随机整数
 
 严格JSON格式，不含其他内容：
@@ -1929,18 +1929,7 @@ async function generateForumPosts() {
             })
         });
         const data = await res.json();
-               let text = data.choices[0].message.content.trim();
-        
-        // 🌟 过滤器：自动寻找 JSON 的起始和结束位置，无视前后的废话
-        const start = text.indexOf('{');
-        const end = text.lastIndexOf('}');
-        
-        if (start === -1 || end === -1) {
-            throw new Error("AI没有返回标准的JSON格式，请重试");
-        }
-        
-        text = text.substring(start, end + 1); // 只截取 {} 括号里的内容
-        
+        let text = data.choices[0].message.content.trim().replace(/```json|```/g, '').trim();
         const parsed = JSON.parse(text);
         parsed.posts.forEach(p => { p.liked = false; p.shareCount = 0; });
         db.forumData = parsed;
