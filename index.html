@@ -1892,7 +1892,7 @@ function filterForumTab(tab) {
 async function generateForumPosts() {
     if (!db.api.u || !db.api.k) { alert("请先在'我'界面配置 API 接口和密钥"); return; }
     const loading = document.getElementById('forum-loading');
-    loading.style.display = 'flex';
+    if (loading) loading.style.display = 'flex';
 
     const charInfo = db.c.map(c => {
         const netmatch = c.p.match(/论坛昵称[""「]([^""」\n]+)[""」]/);
@@ -1909,26 +1909,34 @@ async function generateForumPosts() {
                 max_tokens: 3500,
                 messages: [{
                     role: 'user',
-                    content: `你是"捉鬼师论坛"内容生成器。背景：现代都市，捉鬼师是真实存在的职业，普通人也知道可以委托他们。
-
-已知角色：${charInfo || '暂无'}
-
-请生成10条帖子，要求：
-- 类型分布：commission（委托）2-3条、help（求助）2条、share（见闻）2-3条、discuss（讨论）2条
-- 发帖人分布：已知角色2-3条（用其论坛昵称，authorId填对应数字），其余为陌生人（authorId填null，自拟昵称）
-- 委托帖：具体地点+灵异现象+报酬金额，语气像真实委托
-- 求助帖：捉鬼师描述遭遇，寻求行家建议
-- 见闻帖：目击者叙述，有细节感
-- 讨论帖：行业八卦、技术讨论，有争议性
-- 每帖3-9条回复，回复者也是陌生人或已知角色，有互动感、有情绪
-- likes为10-999随机整数
-
-严格JSON格式，不含其他内容：
-{"posts":[{"id":1,"type":"commission","author":"昵称","authorId":null,"title":"标题","content":"正文100-200字","likes":88,"replies":[{"author":"昵称","authorId":null,"content":"回复内容"}]}]}`
+                    content: `你是"捉鬼师论坛"内容生成器。背景：现代都市灵异设定。请生成10条帖子，包含commission（委托）、help（求助）、share（见闻）、discuss（讨论）类型。已知角色：${charInfo}。请严格按JSON格式返回，不要包含任何多余文字。`
                 }]
             })
         });
         const data = await res.json();
+        
+        // 安全检查：防止 reading '0' 错误
+        if (!data.choices || !data.choices[0]) {
+            const errMsg = (data.error && data.error.message) ? data.error.message : JSON.stringify(data);
+            throw new Error("API未返回数据：" + errMsg);
+        }
+
+        let text = data.choices[0].message.content.trim().replace(/```json|```/g, '').trim();
+        const parsed = JSON.parse(text);
+        parsed.posts.forEach(p => { p.liked = false; p.shareCount = 0; });
+        db.forumData = parsed;
+        commit();
+        renderForum();
+    } catch(e) {
+        console.error(e);
+        const list = document.getElementById('forum-list');
+        if (list) {
+            list.innerHTML = `<div style="color:#c0392b;padding:30px;text-align:center;font-size:14px;">加载失败：${e.message}<br><br><span onclick="generateForumPosts()" style="color:#d4a96a;cursor:pointer;text-decoration:underline;">点击重试</span></div>`;
+        }
+    } finally {
+        if (loading) loading.style.display = 'none';
+    }
+}
         let text = data.choices[0].message.content.trim().replace(/```json|```/g, '').trim();
         const parsed = JSON.parse(text);
         parsed.posts.forEach(p => { p.liked = false; p.shareCount = 0; });
