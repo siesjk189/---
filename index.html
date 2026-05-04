@@ -1895,7 +1895,7 @@ async function generateForumPosts() {
     if (loading) loading.style.display = 'flex';
 
     const charInfo = db.c.map(c => {
-        const netmatch = c.p.match(/论坛昵称[""「]([^""」\n]+)[""」]/);
+        const netmatch = (c.p || "").match(/论坛昵称[""「]([^""」\n]+)[""」]/);
         return `${c.n}（论坛昵称：${netmatch ? netmatch[1] : '未知'}，authorId:${c.id}）`;
     }).join('、');
 
@@ -1909,16 +1909,15 @@ async function generateForumPosts() {
                 max_tokens: 3500,
                 messages: [{
                     role: 'user',
-                    content: `你是"捉鬼师论坛"内容生成器。背景：现代都市灵异设定。请生成10条帖子，包含commission（委托）、help（求助）、share（见闻）、discuss（讨论）类型。已知角色：${charInfo}。请严格按JSON格式返回，不要包含任何多余文字。`
+                    content: `你是"捉鬼师论坛"内容生成器。请生成10条帖子（含commission, help, share, discuss类型）。已知角色：${charInfo}。请严格按JSON格式返回。`
                 }]
             })
         });
         const data = await res.json();
         
-        // 安全检查：防止 reading '0' 错误
         if (!data.choices || !data.choices[0]) {
             const errMsg = (data.error && data.error.message) ? data.error.message : JSON.stringify(data);
-            throw new Error("API未返回数据：" + errMsg);
+            throw new Error("API未返回有效内容：" + errMsg);
         }
 
         let text = data.choices[0].message.content.trim().replace(/```json|```/g, '').trim();
@@ -1928,7 +1927,6 @@ async function generateForumPosts() {
         commit();
         renderForum();
     } catch(e) {
-        console.error(e);
         const list = document.getElementById('forum-list');
         if (list) {
             list.innerHTML = `<div style="color:#c0392b;padding:30px;text-align:center;font-size:14px;">加载失败：${e.message}<br><br><span onclick="generateForumPosts()" style="color:#d4a96a;cursor:pointer;text-decoration:underline;">点击重试</span></div>`;
@@ -1937,12 +1935,34 @@ async function generateForumPosts() {
         if (loading) loading.style.display = 'none';
     }
 }
-        let text = data.choices[0].message.content.trim().replace(/```json|```/g, '').trim();
-        const parsed = JSON.parse(text);
-        parsed.posts.forEach(p => { p.liked = false; p.shareCount = 0; });
-        db.forumData = parsed;
-        commit();
-        renderForum();
+
+function renderForum() {
+    const list = document.getElementById('forum-list');
+    if (!list) return;
+    if (!db.forumData || !db.forumData.posts) {
+        list.innerHTML = `<div style="height:300px;display:flex;flex-direction:column;justify-content:center;align-items:center;color:#888;">
+            <p>论坛空空如也...</p>
+            <button onclick="generateForumPosts()" style="margin-top:15px;padding:8px 20px;background:#d4a96a;color:#1a1a2e;border:none;border-radius:20px;font-weight:bold;">同步最新帖子</button>
+        </div>`;
+        return;
+    }
+    const posts = db.forumData.posts;
+    const typeMap = { commission: '委托', help: '求助', share: '见闻', discuss: '讨论' };
+    list.innerHTML = posts.map(p => `
+        <div class="forum-item" onclick="showPostDetail(${p.id})">
+            <div class="forum-item-header">
+                <span class="forum-tag tag-${p.type}">${typeMap[p.type]}</span>
+                <span class="forum-author">${p.author}</span>
+            </div>
+            <div class="forum-item-title">${p.title}</div>
+            <div class="forum-item-footer">
+                <span>❤️ ${p.likes + (p.liked ? 1 : 0)}</span>
+                <span>💬 ${p.replies.length}</span>
+            </div>
+        </div>
+    `).join('');
+}
+
     } catch(e) {
         const list = document.getElementById('forum-list');
         if (list) list.innerHTML = `<div style="color:#c0392b;padding:30px;text-align:center;font-size:14px;">加载失败：${e.message}<br><br><span onclick="generateForumPosts()" style="color:#d4a96a;cursor:pointer;text-decoration:underline;">点击重试</span></div>`;
