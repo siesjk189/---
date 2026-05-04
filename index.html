@@ -2443,6 +2443,41 @@ function closeMsAiOverlay() {
     document.getElementById('ms-ai-overlay').style.display = 'none';
     closeMinesweeperGame();
 }
+
+// ========== 修复底部 Tab 切换功能 ==========
+function showTab(tab, el) {
+    var pages = document.querySelectorAll('.page');
+    for(var i = 0; i < pages.length; i++) {
+        pages[i].classList.remove('active');
+    }
+    var activePage = document.getElementById('p-' + tab);
+    if(activePage) activePage.classList.add('active');
+    
+    var tabs = document.querySelectorAll('.tab-item');
+    for(var i = 0; i < tabs.length; i++) {
+        tabs[i].classList.remove('active');
+    }
+    if(el) el.classList.add('active');
+    
+    var titles = { msg: '信息', contacts: '好友', moments: '娱乐', me: '我' };
+    var navTitle = document.getElementById('nav-title');
+    if(navTitle) navTitle.innerText = titles[tab] || '信息';
+    
+    if(typeof render === 'function') render();
+}
+
+// 确保底部 Tab 点击事件绑定
+window.addEventListener('DOMContentLoaded', function() {
+    var tabItems = document.querySelectorAll('.tab-item');
+    for(var i = 0; i < tabItems.length; i++) {
+        var item = tabItems[i];
+        var text = item.innerText;
+        if(text.indexOf('信息') !== -1) item.onclick = function(e) { showTab('msg', this); };
+        else if(text.indexOf('好友') !== -1) item.onclick = function(e) { showTab('contacts', this); };
+        else if(text.indexOf('娱乐') !== -1) item.onclick = function(e) { showTab('moments', this); };
+        else if(text.indexOf('我') !== -1) item.onclick = function(e) { showTab('me', this); };
+    }
+});
 </script>
 </body>
 </html>
