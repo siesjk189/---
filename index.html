@@ -1489,16 +1489,9 @@ async function generateNovels() {
                 }]
             })
         });
-        let data;
-        try { data = await res.json(); } catch(jsonErr) { throw new Error('API 返回格式错误，请检查接口地址'); }
-        if (!data.choices || !data.choices[0] || !data.choices[0].message) {
-            const errMsg = (data.error && data.error.message) ? data.error.message : JSON.stringify(data).slice(0, 120);
-            throw new Error('API 错误：' + errMsg);
-        }
+        const data = await res.json();
         let text = data.choices[0].message.content.trim().replace(/```json|```/g, '').trim();
-        const jsonMatch = text.match(/\{[\s\S]*\}/);
-        if (!jsonMatch) throw new Error('模型未返回有效 JSON，请重试');
-        const parsed = JSON.parse(jsonMatch[0]);
+        const parsed = JSON.parse(text);
         db.novelData = parsed;
         if (!db.novelFavorites) db.novelFavorites = {};
         commit();
