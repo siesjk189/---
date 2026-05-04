@@ -988,11 +988,13 @@ INNERSTATE:
 
     if(isAuto) resetTimer(tid);
 
-    // 角色回复后，概率触发角色戳一戳（约15%概率）
+    // 角色回复后，概率触发角色戳一戳用户（约15%概率）
     const charForPoke = db.c.find(x => x.id == tid);
     if (charForPoke && charForPoke.poke && Math.random() < 0.15) {
         setTimeout(() => {
-            db.m[tid].push({ r: 'ai', c: `[戳一戳] ${charForPoke.poke}`, t: Date.now() });
+            // 显示系统提示：角色名戳了戳你，文案
+            const pokeMsg = `「${charForPoke.n}」戳了戳你，${charForPoke.poke}`;
+            db.m[tid].push({ r: 'poke', c: pokeMsg, t: Date.now() });
             commit();
             if (curChatId == tid) renderChat();
         }, 1200 + Math.random() * 1000);
@@ -1045,6 +1047,9 @@ function renderChat() {
         if (msg.r === 'system') {
             // 系统提示条
             return `<div style="text-align:center;margin:6px 0;"><span style="font-size:11px;color:#999;background:rgba(0,0,0,0.06);padding:3px 10px;border-radius:10px;">${msg.c}</span></div>`;
+        } else if (msg.r === 'poke') {
+            // 戳一戳系统提示（统一用系统条样式）
+            return `<div style="text-align:center;margin:8px 0;"><span style="font-size:12px;color:#888;background:rgba(0,0,0,0.05);padding:4px 14px;border-radius:12px;">👈 ${msg.c}</span></div>`;
         } else if (msg.r === 'user') {
             // 用户消息：双击气泡=编辑，双击头像=触发我的戳一戳
             return `<div class="msg user"><img src="${db.u.a}" class="avatar" style="margin:0" ondblclick="triggerMyPoke()" title="双击戳一戳"><div class="bubble" ondblclick="manageMsg(${i})">${content}</div></div>`;
@@ -1056,35 +1061,35 @@ function renderChat() {
     area.scrollTop = area.scrollHeight;
 }
 
-// 用户双击自己头像：触发我的戳一戳，让角色回应
+// 用户双击自己头像：用户戳了自己，显示系统提示并调用API
 function triggerMyPoke() {
     if (!curChatId) return;
     const char = db.c.find(x => x.id == curChatId);
     if (!char) return;
-    const pokeTxt = db.u.poke || '戳了你一下';
-    // 系统提示
-    const sysMsg = `[系统] ${db.u.n || '用户'} 用戳一戳戳了你（戳一戳文案：${pokeTxt}）`;
-    db.m[curChatId].push({ r: 'user', c: `[戳一戳] ${pokeTxt}`, t: Date.now() });
+    const pokeTxt = db.u.poke || '戳了戳自己';
+    // 显示系统提示：你戳了戳自己，文案
+    const pokeMsg = `你戳了戳自己，${pokeTxt}`;
+    db.m[curChatId].push({ r: 'poke', c: pokeMsg, t: Date.now() });
     commit(); renderChat();
-    // 临时注入一条system消息让AI感知，用隐藏消息方式
-    _fetchAIWithExtra(curChatId, sysMsg);
+    // 调用API，让角色感知用户戳了自己
+    _fetchAIWithExtra(curChatId, `[系统] 用户戳了戳自己（戳一戳文案：${pokeTxt}），请配合这个动作做出符合人设的简短自然回应。`);
 }
 
-// 角色双击自己头像：触发角色戳一戳，角色主动戳用户
+// 用户双击角色头像：用户戳了角色，显示系统提示并调用API
 function triggerCharPoke(charId) {
     const char = db.c.find(x => x.id == charId);
-    if (!char || !char.poke) {
-        // 未设置戳一戳时提示
-        showPokeToast(`${char ? char.n : '角色'}还没有设置戳一戳哦`);
+    if (!char) return;
+    if (!char.poke) {
+        showPokeToast(`${char.n}还没有设置戳一戳哦`);
         return;
     }
-    // 插入角色戳一戳消息
-    db.m[charId].push({ r: 'ai', c: `[戳一戳] ${char.poke}`, t: Date.now() });
+    const pokeTxt = char.poke;
+    // 显示系统提示：你戳了戳'角色名'，文案
+    const pokeMsg = `你戳了戳「${char.n}」，${pokeTxt}`;
+    db.m[charId].push({ r: 'poke', c: pokeMsg, t: Date.now() });
     commit(); renderChat();
-    // 概率触发语音回应（30%）
-    if (Math.random() < 0.3) {
-        setTimeout(() => _fetchAIWithExtra(charId, '[系统] 你刚刚用戳一戳戳了用户，请配合戳一戳文案做出简短自然的反应，不超过15字。'), 600);
-    }
+    // 调用API让角色回应被戳
+    _fetchAIWithExtra(charId, `[系统] 用户用戳一戳戳了你（戳一戳文案：${pokeTxt}），请配合这个戳一戳文案做出符合人设的简短自然回应，不超过15字。`);
 }
 
 // 应用角色戳一戳（角色资料页"应用"按钮）
@@ -2355,7 +2360,7 @@ let quizGeneratedQuestions = []; // 角色出题时保存
 let quizResultData = null; // 最终结果
 
 function openQuizGame() {
-    const gameCompId = gameCompanionId; // 去掉 db.
+    const gameCompId = db.gameCompanionId;
     if (!gameCompId) { alert("请先在小游戏页面右上角选择一起玩的角色"); return; }
     quizCharId = gameCompId;
     const char = db.c.find(x => x.id == quizCharId);
@@ -2500,7 +2505,7 @@ async function submitCharAnswers() {
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${db.api.k}` },
             body: JSON.stringify({
                 model: db.api.model || 'gpt-3.5-turbo',
-                max_tokens: 3500,
+                max_tokens: 2000,
                 messages: [{
                     role: 'user',
                     content: `你是角色${char.n}，性格设定：${char.p}\n\n你向用户提了10个问题，以下是用户的作答。请以你的角色身份，对每个答案给出真实符合人设的反应（15-30字，可以是惊喜、感动、吐槽、调侃等）。\n\n${qaText}\n\n严格以JSON返回，格式：{"reactions":[{"q":"问题","userAnswer":"用户答案","reaction":"角色反应"}]}，不含其他内容。`
@@ -2569,6 +2574,10 @@ let gameCompanionId = null;
 
 function openGamePage() {
     document.getElementById('game-room').style.display = 'flex';
+    // 从db恢复选择的角色
+    if (db.gameCompanionId && db.c.find(c => c.id === db.gameCompanionId)) {
+        gameCompanionId = db.gameCompanionId;
+    }
     updateGameCompanionBtn();
     refreshGameArea();
 }
@@ -2591,12 +2600,12 @@ function updateGameCompanionBtn() {
         }
         btn.style.borderColor = 'var(--wechat-green)';
     } else {
+        btn.innerHTML = '';
         if (db.u && db.u.a) {
             btn.style.backgroundImage = `url(${db.u.a})`;
-            btn.innerHTML = '';
         } else {
             btn.style.backgroundImage = 'none';
-            btn.innerHTML = `<span style="font-size:12px;color:#999;">我</span>`;
+            btn.innerHTML = `<span style="font-size:12px;color:#999;">👤</span>`;
         }
         btn.style.borderColor = '#ccc';
     }
@@ -2637,6 +2646,8 @@ function closeGameCompanionPicker() {
 
 function selectGameCompanion(id) {
     gameCompanionId = id;
+    db.gameCompanionId = id;
+    commit();
     updateGameCompanionBtn();
     closeGameCompanionPicker();
     refreshGameArea();
