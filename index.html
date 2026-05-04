@@ -2412,7 +2412,6 @@ async function _quizGenerateCharQuestions() {
     if (!char) return;
     document.getElementById('quiz-loading-text').innerText = `${char.n}正在想问题...`;
     document.getElementById('quiz-loading').style.display = 'flex';
-    const memory = (db.m[quizCharId] || []).slice(-20).map(h => `${h.r==='user'?'用户':char.n}:${h.c}`).join('\n');
     try {
         const base = db.api.u.replace(/\/chat\/completions\/?$/, '').replace(/\/$/, '');
         const res = await fetch(`${base}/chat/completions`, {
@@ -2420,17 +2419,33 @@ async function _quizGenerateCharQuestions() {
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${db.api.k}` },
             body: JSON.stringify({
                 model: db.api.model || 'gpt-3.5-turbo',
-                max_tokens: 900,
+                max_tokens: 800,
                 messages: [{
                     role: 'user',
-                    content: `你是角色${char.n}，性格：${char.p.slice(0,200)}。\n近期聊天记录：${memory || '暂无'}\n\n请以你的角色身份，向用户提出5个真实、有趣、符合你性格的问题（可以是关于用户的喜好、日常、对你的感觉等）。直接以JSON返回，格式：{"questions":["问题1","问题2",...]}，不含其他内容。`
+                    content: `你是角色${char.n}，性格：${char.p.slice(0,150)}。请以你的角色身份向用户提出5个有趣的问题。必须严格只输出如下JSON，不要有任何多余文字：{"questions":["问题一","问题二","问题三","问题四","问题五"]}`
                 }]
             })
         });
         const data = await res.json();
-        let text = data.choices[0].message.content.trim().replace(/\`\`\`json|\`\`\`/g, '').trim();
-        const parsed = JSON.parse(text);
-        quizGeneratedQuestions = parsed.questions || [];
+        let text = data.choices[0].message.content.trim();
+        text = text.replace(/```json/gi, '').replace(/```/g, '').trim();
+        // 从文本中提取JSON对象
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) throw new Error('返回内容中未找到JSON');
+        let parsed;
+        try {
+            parsed = JSON.parse(jsonMatch[0]);
+        } catch(parseErr) {
+            // 尝试从截断JSON中提取已有问题
+            const qMatches = text.match(/"([^"]{2,80})"/g);
+            if (qMatches && qMatches.length >= 3) {
+                parsed = { questions: qMatches.slice(0, 5).map(s => s.replace(/"/g, '')) };
+            } else {
+                throw new Error('JSON解析失败，请重试');
+            }
+        }
+        quizGeneratedQuestions = (parsed.questions || []).slice(0, 5);
+        if (quizGeneratedQuestions.length === 0) throw new Error('未能获取问题，请重试');
         // 渲染答题框
         let html = '';
         quizGeneratedQuestions.forEach((q, i) => {
@@ -2443,8 +2458,10 @@ async function _quizGenerateCharQuestions() {
         document.getElementById('quiz-char-questions-area').innerHTML = html;
         _quizShowPanel('char-write');
     } catch(e) {
-        alert('生成问题失败：' + e.message);
         document.getElementById('quiz-loading').style.display = 'none';
+        if (confirm('生成问题失败，要重新试一次吗？\n（错误：' + e.message + '）')) {
+            _quizGenerateCharQuestions();
+        }
     }
 }
 
