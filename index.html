@@ -2422,26 +2422,45 @@ async function _quizGenerateCharQuestions() {
                 max_tokens: 800,
                 messages: [{
                     role: 'user',
-                    content: `你是角色${char.n}，性格：${char.p.slice(0,150)}。请以你的角色身份向用户提出5个有趣的问题。必须严格只输出如下JSON，不要有任何多余文字：{"questions":["问题一","问题二","问题三","问题四","问题五"]}`
+                    content: `你是角色${char.n}，性格：${char.p.slice(0,150)}。请以你的角色身份向用户提出5个有趣的问题。\n【重要】你的回复必须是且只能是一个合法JSON对象，格式如下，不允许有任何其他文字、解释、markdown标记：\n{"questions":["问题一","问题二","问题三","问题四","问题五"]}`
                 }]
             })
         });
         const data = await res.json();
         let text = data.choices[0].message.content.trim();
         text = text.replace(/```json/gi, '').replace(/```/g, '').trim();
-        // 从文本中提取JSON对象
-        const jsonMatch = text.match(/\{[\s\S]*\}/);
-        if (!jsonMatch) throw new Error('返回内容中未找到JSON');
         let parsed;
+        // 尝试多种方式解析JSON
         try {
-            parsed = JSON.parse(jsonMatch[0]);
-        } catch(parseErr) {
-            // 尝试从截断JSON中提取已有问题
-            const qMatches = text.match(/"([^"]{2,80})"/g);
-            if (qMatches && qMatches.length >= 3) {
-                parsed = { questions: qMatches.slice(0, 5).map(s => s.replace(/"/g, '')) };
-            } else {
-                throw new Error('JSON解析失败，请重试');
+            // 方式1：直接解析整个文本
+            parsed = JSON.parse(text);
+        } catch(e1) {
+            try {
+                // 方式2：提取{}块
+                const jsonMatch = text.match(/\{[\s\S]*\}/);
+                if (jsonMatch) parsed = JSON.parse(jsonMatch[0]);
+                else throw new Error('no json block');
+            } catch(e2) {
+                try {
+                    // 方式3：提取[]数组块作为questions
+                    const arrMatch = text.match(/\[[\s\S]*\]/);
+                    if (arrMatch) parsed = { questions: JSON.parse(arrMatch[0]) };
+                    else throw new Error('no array');
+                } catch(e3) {
+                    // 方式4：用正则提取引号内的问题文本
+                    const qMatches = text.match(/"([^"]{4,100})"/g);
+                    if (qMatches && qMatches.length >= 3) {
+                        parsed = { questions: qMatches.slice(0, 5).map(s => s.replace(/^"|"$/g, '')) };
+                    } else {
+                        // 方式5：按行提取（有些模型用1. 2.格式输出）
+                        const lines = text.split('\n').map(l => l.replace(/^\d+[\.\。\、]\s*/, '').trim()).filter(l => l.length > 4 && l.length < 100);
+                        if (lines.length >= 3) {
+                            parsed = { questions: lines.slice(0, 5) };
+                        } else {
+                            throw new Error('无法解析返回内容，请重试');
+                        }
+                    }
+                }
             }
         }
         quizGeneratedQuestions = (parsed.questions || []).slice(0, 5);
@@ -2494,8 +2513,14 @@ async function submitUserQuestions() {
             })
         });
         const data = await res.json();
-        let text = data.choices[0].message.content.trim().replace(/\`\`\`json|\`\`\`/g, '').trim();
-        const parsed = JSON.parse(text);
+        let text = data.choices[0].message.content.trim().replace(/```json|```/gi, '').trim();
+        let parsed;
+        try { parsed = JSON.parse(text); }
+        catch(e1) {
+            const m = text.match(/\{[\s\S]*\}/);
+            if (m) parsed = JSON.parse(m[0]);
+            else throw new Error('无法解析返回内容');
+        }
         quizResultData = { mode: 'user', items: parsed.answers };
         _renderQuizResult();
     } catch(e) {
@@ -2530,8 +2555,14 @@ async function submitCharAnswers() {
             })
         });
         const data = await res.json();
-        let text = data.choices[0].message.content.trim().replace(/\`\`\`json|\`\`\`/g, '').trim();
-        const parsed = JSON.parse(text);
+        let text = data.choices[0].message.content.trim().replace(/```json|```/gi, '').trim();
+        let parsed;
+        try { parsed = JSON.parse(text); }
+        catch(e1) {
+            const m = text.match(/\{[\s\S]*\}/);
+            if (m) parsed = JSON.parse(m[0]);
+            else throw new Error('无法解析返回内容');
+        }
         quizResultData = { mode: 'char', items: parsed.reactions };
         _renderQuizResult();
     } catch(e) {
@@ -2929,6 +2960,11 @@ async function msCallAPI(resultType, punishmentText) {
 
     const overlay = document.getElementById('ms-ai-overlay');
     const contentEl = document.getElementById('ms-ai-content');
+    // 确保头像和名字在这里也更新（防止初始化时机问题）
+    const avaEl = document.getElementById('ms-ai-char-ava');
+    const nmEl = document.getElementById('ms-ai-char-nm');
+    if (avaEl) avaEl.src = char.a || '';
+    if (nmEl) nmEl.innerText = char.n;
     overlay.style.display = 'flex';
     contentEl.innerHTML = '<span style="color:#bbb;">生成中...</span>';
 
@@ -2961,7 +2997,9 @@ async function msCallAPI(resultType, punishmentText) {
             })
         });
         const data = await res.json();
-        const text = data.choices[0].message.content.trim();
+        const text = (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content)
+            ? data.choices[0].message.content.trim()
+            : '（生成失败，请重试）';
         contentEl.textContent = text;
     } catch (e) {
         contentEl.textContent = '生成失败：' + e.message;
