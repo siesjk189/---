@@ -104,6 +104,13 @@
                     </div>
                     <div style="margin-left:auto;color:#ccc;font-size:20px;">›</div>
                 </div>
+                <div onclick="openForumPage()" style="display:flex;align-items:center;background:#fff;border-radius:12px;padding:18px 16px;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,0.08);cursor:pointer;">
+                    <div>
+                        <div style="font-weight:bold;font-size:16px;color:#333;">捉鬼师论坛</div>
+                        <div style="font-size:12px;color:#999;margin-top:3px;">浏览帖子、接受委托，江湖消息尽在此处</div>
+                    </div>
+                    <div style="margin-left:auto;color:#ccc;font-size:20px;">›</div>
+                </div>
             </div>
         </div>
 
@@ -159,6 +166,42 @@
         <div class="tab-item" onclick="showTab('me',this)">♢我</div>
     </div>
 
+    <!-- ═══════════════ 捉鬼师论坛 ═══════════════ -->
+    <div id="forum-room" style="position:absolute;inset:0;background:#f0ece6;z-index:1500;display:none;flex-direction:column;">
+        <!-- 导航栏 -->
+        <div class="nav" style="background:#2c1810;border-bottom:1px solid #4a2c1a;">
+            <div class="back-btn" onclick="closeForumPage()" style="color:#d4a96a;">‹ 返回</div>
+            <div class="nav-title" style="color:#d4a96a;font-family:serif;letter-spacing:2px;">☽ 捉鬼师论坛 ☾</div>
+            <div onclick="refreshForum()" style="position:absolute;right:14px;font-size:12px;color:#d4a96a;cursor:pointer;background:rgba(255,255,255,0.1);padding:4px 10px;border-radius:10px;white-space:nowrap;">🔄 刷新</div>
+        </div>
+        <!-- 分类标签栏 -->
+        <div style="display:flex;gap:0;background:#3d2010;overflow-x:auto;flex-shrink:0;border-bottom:1px solid #5a3520;">
+            <div onclick="filterForumTab('all')" id="ftab-all" style="flex-shrink:0;padding:9px 14px;font-size:12px;color:#d4a96a;cursor:pointer;border-bottom:2px solid #d4a96a;font-weight:bold;">全部</div>
+            <div onclick="filterForumTab('commission')" id="ftab-commission" style="flex-shrink:0;padding:9px 14px;font-size:12px;color:#a08060;cursor:pointer;border-bottom:2px solid transparent;">委托</div>
+            <div onclick="filterForumTab('help')" id="ftab-help" style="flex-shrink:0;padding:9px 14px;font-size:12px;color:#a08060;cursor:pointer;border-bottom:2px solid transparent;">求助</div>
+            <div onclick="filterForumTab('share')" id="ftab-share" style="flex-shrink:0;padding:9px 14px;font-size:12px;color:#a08060;cursor:pointer;border-bottom:2px solid transparent;">见闻</div>
+            <div onclick="filterForumTab('discuss')" id="ftab-discuss" style="flex-shrink:0;padding:9px 14px;font-size:12px;color:#a08060;cursor:pointer;border-bottom:2px solid transparent;">讨论</div>
+        </div>
+        <!-- 帖子列表 -->
+        <div id="forum-list" style="flex:1;overflow-y:auto;padding:10px;"></div>
+        <!-- 加载遮罩 -->
+        <div id="forum-loading" style="display:none;position:absolute;inset:0;background:rgba(240,236,230,0.93);z-index:100;align-items:center;justify-content:center;flex-direction:column;gap:14px;">
+            <div style="font-size:32px;">👻</div>
+            <div style="color:#6b4226;font-size:14px;">正在加载论坛...</div>
+        </div>
+    </div>
+
+    <!-- 帖子详情（回复弹层） -->
+    <div id="forum-reply-panel" style="position:absolute;inset:0;background:rgba(0,0,0,0.5);z-index:2200;display:none;align-items:flex-end;justify-content:center;">
+        <div style="background:#f0ece6;border-radius:16px 16px 0 0;width:100%;max-height:80%;display:flex;flex-direction:column;">
+            <div style="padding:12px 16px;border-bottom:1px solid #d8cfc4;display:flex;justify-content:space-between;align-items:center;background:#3d2010;border-radius:16px 16px 0 0;">
+                <span style="font-weight:bold;font-size:14px;color:#d4a96a;">💬 回复</span>
+                <span onclick="closeReplyPanel()" style="color:#d4a96a;cursor:pointer;font-size:22px;">×</span>
+            </div>
+            <div id="forum-reply-list" style="flex:1;overflow-y:auto;padding:12px 14px;"></div>
+        </div>
+    </div>
+
     <!-- 小说列表页面 -->
     <div id="novel-room" style="position:absolute;inset:0;background:#f5f5f5;z-index:1500;display:none;flex-direction:column;">
         <div class="nav" style="padding:0 12px;">
@@ -169,13 +212,6 @@
                 <div id="novel-companion-btn" onclick="openCompanionPicker()" title="选择一起看小说的角色"
                      style="width:30px;height:30px;border-radius:6px;background:#ddd center/cover no-repeat;cursor:pointer;border:1.5px solid #ccc;font-size:13px;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;"></div>
                 <div onclick="refreshNovels()" style="font-size:12px;color:var(--link-color);cursor:pointer;background:#e8e8e8;padding:5px 9px;border-radius:10px;white-space:nowrap;">换一换</div>
-            </div>
-        </div>
-        <!-- 标签搜索框 -->
-        <div id="novel-search-bar" style="padding:10px 12px;background:#fff;border-bottom:0.5px solid #eee;flex-shrink:0;">
-            <div style="display:flex;gap:8px;align-items:center;">
-                <input id="novel-tag-input" type="text" placeholder="输入想看的标签，如：古风 甜宠 悬疑..." style="flex:1;border:1px solid #ddd;border-radius:20px;padding:7px 14px;font-size:13px;outline:none;background:#f7f7f7;">
-                <button onclick="searchNovelsByTag()" style="flex-shrink:0;border:none;background:var(--wechat-green);color:#fff;border-radius:20px;padding:7px 14px;font-size:13px;cursor:pointer;white-space:nowrap;">搜索</button>
             </div>
         </div>
         <!-- 标签切换：书单 / 收藏 -->
@@ -195,8 +231,9 @@
     <div id="novel-detail-room" style="position:absolute;inset:0;background:#fff;z-index:1600;display:none;flex-direction:column;">
         <div class="nav">
             <div class="back-btn" onclick="closeNovelDetail()">‹ 返回</div>
+            <!-- 收藏按钮紧贴返回键右侧 -->
+            <div id="novel-fav-btn" onclick="toggleNovelFavorite()" style="position:absolute;left:56px;cursor:pointer;font-size:20px;line-height:48px;" title="收藏">☆</div>
             <div id="novel-detail-title" class="nav-title" style="max-width:55%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></div>
-            <div id="novel-fav-btn" onclick="toggleNovelFavorite()" style="position:absolute;right:15px;cursor:pointer;font-size:22px;line-height:48px;color:#f5a623;" title="收藏">☆</div>
         </div>
         <div id="novel-detail-area" style="flex:1;overflow-y:auto;padding:16px;"></div>
     </div>
@@ -1258,7 +1295,6 @@ function closeMomentsPage() {
 let currentNovelIndex = null;
 let currentChapterIndex = 0;
 let novelCurrentTab = 'list'; // 'list' | 'fav'
-let novelChapterTempCache = {}; // key: bookKey+chIdx -> chData (临时缓存，未收藏时使用)
 
 // 从 db 中取伴读ID，保持持久化
 function getNovelCompanionId() { return db.novelCompanionId !== undefined ? db.novelCompanionId : null; }
@@ -1344,7 +1380,6 @@ async function generateNovels() {
         const parsed = JSON.parse(text);
         db.novelData = parsed;
         if (!db.novelFavorites) db.novelFavorites = {};
-        novelChapterTempCache = {};
         commit();
         renderNovelList();
     } catch(e) {
@@ -1356,48 +1391,8 @@ async function generateNovels() {
 
 function refreshNovels() {
     db.novelData = null;
-    novelChapterTempCache = {};
     commit();
     generateNovels();
-}
-
-async function searchNovelsByTag() {
-    const input = document.getElementById('novel-tag-input');
-    const tags = (input ? input.value.trim() : '');
-    if (!tags) { alert('请输入想看的标签'); return; }
-    if (!db.api.u || !db.api.k) { alert("请先在'我'界面配置 API 接口和密钥"); return; }
-    const loading = document.getElementById('novel-loading');
-    loading.style.display = 'flex';
-    loading.querySelector('div:last-child').innerText = '正在按标签搜索...';
-    try {
-        const base = db.api.u.replace(/\/chat\/completions\/?$/, '').replace(/\/$/, '');
-        const res = await fetch(`${base}/chat/completions`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${db.api.k}` },
-            body: JSON.stringify({
-                model: db.api.model || 'gpt-3.5-turbo',
-                max_tokens: 1500,
-                messages: [{
-                    role: 'user',
-                    content: `请根据以下标签生成6本符合风格的虚构小说，标签为：${tags}。每本包含书名、标签（2-3个，需包含用户指定的标签）、简介（50字左右）、以及该小说的章节目录（5章，每章标题）。请严格按照以下JSON格式返回，不要有任何其他内容：{"books":[{"title":"书名","tags":["标签1","标签2"],"summary":"简介","chapters":["第一章 章节名","第二章 章节名","第三章 章节名","第四章 章节名","第五章 章节名"]}]}`
-                }]
-            })
-        });
-        const data = await res.json();
-        let text = data.choices[0].message.content.trim().replace(/```json|```/g, '').trim();
-        const parsed = JSON.parse(text);
-        db.novelData = parsed;
-        if (!db.novelFavorites) db.novelFavorites = {};
-        novelChapterTempCache = {};
-        commit();
-        // 切换到书单tab
-        switchNovelTab('list');
-    } catch(e) {
-        alert('搜索失败：' + e.message);
-    } finally {
-        loading.style.display = 'none';
-        loading.querySelector('div:last-child').innerText = '正在生成书单...';
-    }
 }
 
 function getBookKey(book) {
@@ -1579,14 +1574,7 @@ function toggleNovelFavorite() {
             book = db.novelFavorites[key].bookInfo;
         }
         if (!book) return;
-        // 收藏时，把临时缓存中已读章节一并带入
-        const existingChapters = {};
-        const chapters = book.chapters || [];
-        chapters.forEach((_, i) => {
-            const tempKey = key + '_' + i;
-            if (novelChapterTempCache[tempKey]) existingChapters[i] = novelChapterTempCache[tempKey];
-        });
-        db.novelFavorites[key] = { bookInfo: book, chapters: existingChapters, progress: currentChapterIndex || 0 };
+        db.novelFavorites[key] = { bookInfo: book, chapters: {}, progress: 0 };
     }
     commit();
     updateFavBtn(key);
@@ -1641,31 +1629,17 @@ async function readChapter(chIdx, key) {
     const body = document.getElementById('chapter-room-body');
     room.style.display = 'flex';
 
-    // 1. 优先从收藏缓存读取
+    // Check if we already have this chapter cached in favorites
     if (db.novelFavorites && db.novelFavorites[key] && db.novelFavorites[key].chapters && db.novelFavorites[key].chapters[chIdx]) {
         const cached = db.novelFavorites[key].chapters[chIdx];
         renderChapterContent(cached, key, chIdx, book);
+        // Update reading progress
         db.novelFavorites[key].progress = chIdx;
         commit();
         return;
     }
 
-    // 2. 从临时缓存读取（未收藏时也不重复生成）
-    const tempKey = key + '_' + chIdx;
-    if (novelChapterTempCache[tempKey]) {
-        const cached = novelChapterTempCache[tempKey];
-        renderChapterContent(cached, key, chIdx, book);
-        // 如果此时已经收藏，同步进收藏缓存
-        if (db.novelFavorites && db.novelFavorites[key]) {
-            if (!db.novelFavorites[key].chapters) db.novelFavorites[key].chapters = {};
-            db.novelFavorites[key].chapters[chIdx] = cached;
-            db.novelFavorites[key].progress = chIdx;
-            commit();
-        }
-        return;
-    }
-
-    // 3. 生成章节
+    // Generate chapter
     if (!db.api.u || !db.api.k) { alert("请先配置API"); return; }
     body.innerHTML = `<div style="text-align:center;color:#999;padding:40px 0;">正在生成章节内容...</div>`;
 
@@ -1698,10 +1672,7 @@ async function readChapter(chIdx, key) {
             chData = { chapter: text, annotations: [] };
         }
 
-        // 保存到临时缓存（无论是否收藏）
-        novelChapterTempCache[tempKey] = chData;
-
-        // 如果已收藏，同步保存到收藏缓存
+        // Cache in favorites if this book is favorited
         if (db.novelFavorites && db.novelFavorites[key]) {
             if (!db.novelFavorites[key].chapters) db.novelFavorites[key].chapters = {};
             db.novelFavorites[key].chapters[chIdx] = chData;
@@ -1775,6 +1746,195 @@ function toggleBubble(e, i) {
 document.addEventListener('click', function() {
     document.querySelectorAll('[id^="bubble-"]').forEach(b => b.style.display = 'none');
 });
+
+// ═══════════════════════════════════════════════
+// ──────────── 捉鬼师论坛功能 ─────────────────
+// ═══════════════════════════════════════════════
+
+let forumCurrentTab = 'all';
+
+function openForumPage() {
+    document.getElementById('forum-room').style.display = 'flex';
+    if (!db.forumData || !db.forumData.posts || db.forumData.posts.length === 0) {
+        generateForumPosts();
+    } else {
+        renderForum();
+    }
+}
+function closeForumPage() { document.getElementById('forum-room').style.display = 'none'; }
+function refreshForum() { db.forumData = null; commit(); generateForumPosts(); }
+
+function filterForumTab(tab) {
+    forumCurrentTab = tab;
+    ['all','commission','help','share','discuss'].forEach(t => {
+        const el = document.getElementById('ftab-' + t);
+        if (!el) return;
+        if (t === tab) { el.style.color='#d4a96a'; el.style.borderBottom='2px solid #d4a96a'; el.style.fontWeight='bold'; }
+        else { el.style.color='#a08060'; el.style.borderBottom='2px solid transparent'; el.style.fontWeight='normal'; }
+    });
+    renderForum();
+}
+
+async function generateForumPosts() {
+    if (!db.api.u || !db.api.k) { alert("请先在'我'界面配置 API 接口和密钥"); return; }
+    const loading = document.getElementById('forum-loading');
+    loading.style.display = 'flex';
+
+    const charInfo = db.c.map(c => {
+        const netmatch = c.p.match(/论坛昵称[""「]([^""」\n]+)[""」]/);
+        return `${c.n}（论坛昵称：${netmatch ? netmatch[1] : '未知'}，authorId:${c.id}）`;
+    }).join('、');
+
+    try {
+        const base = db.api.u.replace(/\/chat\/completions\/?$/, '').replace(/\/$/, '');
+        const res = await fetch(`${base}/chat/completions`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${db.api.k}` },
+            body: JSON.stringify({
+                model: db.api.model || 'gpt-3.5-turbo',
+                max_tokens: 3500,
+                messages: [{
+                    role: 'user',
+                    content: `你是"捉鬼师论坛"内容生成器。背景：现代都市，捉鬼师是真实存在的职业，普通人也知道可以委托他们。
+
+已知角色：${charInfo || '暂无'}
+
+请生成10条帖子，要求：
+- 类型分布：commission（委托）2-3条、help（求助）2条、share（见闻）2-3条、discuss（讨论）2条
+- 发帖人分布：已知角色2-3条（用其论坛昵称，authorId填对应数字），其余为陌生人（authorId填null，自拟昵称）
+- 委托帖：具体地点+灵异现象+报酬金额，语气像真实委托
+- 求助帖：捉鬼师描述遭遇，寻求行家建议
+- 见闻帖：目击者叙述，有细节感
+- 讨论帖：行业八卦、技术讨论，有争议性
+- 每帖3-9条回复，回复者也是陌生人或已知角色，有互动感、有情绪
+- likes为10-999随机整数
+
+严格JSON格式，不含其他内容：
+{"posts":[{"id":1,"type":"commission","author":"昵称","authorId":null,"title":"标题","content":"正文100-200字","likes":88,"replies":[{"author":"昵称","authorId":null,"content":"回复内容"}]}]}`
+                }]
+            })
+        });
+        const data = await res.json();
+        let text = data.choices[0].message.content.trim().replace(/```json|```/g, '').trim();
+        const parsed = JSON.parse(text);
+        parsed.posts.forEach(p => { p.liked = false; p.shareCount = 0; });
+        db.forumData = parsed;
+        commit();
+        renderForum();
+    } catch(e) {
+        const list = document.getElementById('forum-list');
+        if (list) list.innerHTML = `<div style="color:#c0392b;padding:30px;text-align:center;font-size:14px;">加载失败：${e.message}<br><br><span onclick="generateForumPosts()" style="color:#d4a96a;cursor:pointer;text-decoration:underline;">点击重试</span></div>`;
+    } finally {
+        loading.style.display = 'none';
+    }
+}
+
+const _fTypeLbl = { commission:'委托', help:'求助', share:'见闻', discuss:'讨论' };
+const _fTypeBg  = { commission:'#7b2d00', help:'#1a3a5c', share:'#2d5a27', discuss:'#3d2010' };
+const _fTypeClr = { commission:'#ffb347', help:'#7ec8e3', share:'#90ee90', discuss:'#d4a96a' };
+const _fTypeIcon = { commission:'📜', help:'🆘', share:'👁', discuss:'💬' };
+
+function renderForum() {
+    if (!db.forumData || !db.forumData.posts) return;
+    const list = document.getElementById('forum-list');
+    if (!list) return;
+    let posts = db.forumData.posts;
+    if (forumCurrentTab !== 'all') posts = posts.filter(p => p.type === forumCurrentTab);
+    if (posts.length === 0) {
+        list.innerHTML = `<div style="text-align:center;color:#9a7a5a;margin-top:60px;font-size:14px;">暂无此类帖子</div>`;
+        return;
+    }
+    list.innerHTML = posts.map(post => {
+        const gi = db.forumData.posts.indexOf(post);
+        const typeBg = _fTypeBg[post.type] || '#3d2010';
+        const typeClr = _fTypeClr[post.type] || '#d4a96a';
+        const typeLbl = _fTypeLbl[post.type] || post.type;
+        const typeIcon = _fTypeIcon[post.type] || '📌';
+        const replyCount = (post.replies || []).length;
+        const matchedChar = (post.authorId !== null && post.authorId !== undefined) ? db.c.find(c => c.id === post.authorId) : null;
+        const avatarHtml = matchedChar && matchedChar.a
+            ? `<img src="${matchedChar.a}" style="width:38px;height:38px;border-radius:6px;object-fit:cover;background:#ddd;flex-shrink:0;" onerror="this.style.background='#6b4226';this.removeAttribute('src')">`
+            : `<div style="width:38px;height:38px;border-radius:6px;background:${typeBg};display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;">${typeIcon}</div>`;
+        return `<div style="background:#fff8f0;border-radius:10px;padding:14px;margin-bottom:10px;border:1px solid #e8d8c4;box-shadow:0 1px 3px rgba(0,0,0,0.06);">
+            <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:8px;">
+                ${avatarHtml}
+                <div style="flex:1;min-width:0;">
+                    <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:3px;">
+                        <span style="font-size:13px;font-weight:bold;color:#3d2010;">${post.author}</span>
+                        <span style="font-size:10px;padding:2px 7px;border-radius:6px;background:${typeBg};color:${typeClr};font-weight:bold;">${typeLbl}</span>
+                    </div>
+                    <div style="font-weight:bold;font-size:14px;color:#2c1810;line-height:1.4;">${post.title}</div>
+                </div>
+            </div>
+            <div style="font-size:13px;color:#5a3a20;line-height:1.75;margin-bottom:10px;padding:0 0 0 48px;">${post.content}</div>
+            <div style="display:flex;border-top:1px solid #eedcc4;padding-top:8px;padding-left:48px;">
+                <div onclick="toggleForumLike(${gi})" style="flex:1;display:flex;align-items:center;justify-content:center;gap:5px;cursor:pointer;padding:4px 0;">
+                    <span id="flike-icon-${gi}" style="font-size:16px;">${post.liked?'❤️':'🤍'}</span>
+                    <span id="flike-cnt-${gi}" style="font-size:12px;color:${post.liked?'#e74c3c':'#9a7a5a'};">${post.likes}</span>
+                </div>
+                <div onclick="openReplyPanel(${gi})" style="flex:1;display:flex;align-items:center;justify-content:center;gap:5px;cursor:pointer;padding:4px 0;">
+                    <span style="font-size:15px;">💬</span>
+                    <span style="font-size:12px;color:#9a7a5a;">${replyCount}</span>
+                </div>
+                <div onclick="forumShare(${gi})" id="fshare-btn-${gi}" style="flex:1;display:flex;align-items:center;justify-content:center;gap:5px;cursor:pointer;padding:4px 0;">
+                    <span style="font-size:15px;">↗</span>
+                    <span id="fshare-cnt-${gi}" style="font-size:12px;color:#9a7a5a;">${post.shareCount||0}</span>
+                </div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function toggleForumLike(gi) {
+    if (!db.forumData || !db.forumData.posts[gi]) return;
+    const post = db.forumData.posts[gi];
+    post.liked = !post.liked;
+    post.likes += post.liked ? 1 : -1;
+    commit();
+    const icon = document.getElementById('flike-icon-' + gi);
+    const cnt  = document.getElementById('flike-cnt-' + gi);
+    if (icon) icon.textContent = post.liked ? '❤️' : '🤍';
+    if (cnt)  { cnt.textContent = post.likes; cnt.style.color = post.liked ? '#e74c3c' : '#9a7a5a'; }
+}
+
+function forumShare(gi) {
+    if (!db.forumData || !db.forumData.posts[gi]) return;
+    const post = db.forumData.posts[gi];
+    post.shareCount = (post.shareCount || 0) + 1;
+    commit();
+    const el = document.getElementById('fshare-cnt-' + gi);
+    if (el) el.textContent = post.shareCount;
+    const btn = document.getElementById('fshare-btn-' + gi);
+    if (btn) { btn.style.opacity = '0.35'; setTimeout(() => { btn.style.opacity = '1'; }, 280); }
+}
+
+function openReplyPanel(gi) {
+    if (!db.forumData || !db.forumData.posts[gi]) return;
+    const post = db.forumData.posts[gi];
+    const replies = post.replies || [];
+    const panel = document.getElementById('forum-reply-list');
+    if (!panel) return;
+    panel.innerHTML = `
+        <div style="margin-bottom:14px;padding:12px;background:#fff3e0;border-radius:8px;border-left:3px solid #d4a96a;">
+            <div style="font-weight:bold;font-size:13px;color:#3d2010;margin-bottom:5px;">${post.author}：${post.title}</div>
+            <div style="font-size:12px;color:#6b4226;line-height:1.65;">${post.content}</div>
+        </div>
+        <div style="font-size:11px;color:#9a7a5a;margin-bottom:10px;padding-left:2px;">共 ${replies.length} 条回复</div>
+        ${replies.map(r => {
+            const rc = (r.authorId !== null && r.authorId !== undefined) ? db.c.find(c => c.id === r.authorId) : null;
+            const av = rc && rc.a
+                ? `<img src="${rc.a}" style="width:30px;height:30px;border-radius:6px;object-fit:cover;flex-shrink:0;" onerror="this.style.background='#8b6040';this.removeAttribute('src')">`
+                : `<div style="width:30px;height:30px;border-radius:6px;background:#8b5a30;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:bold;color:#d4a96a;flex-shrink:0;">${r.author.charAt(0)}</div>`;
+            return `<div style="display:flex;gap:9px;margin-bottom:13px;align-items:flex-start;">${av}
+                <div style="flex:1;">
+                    <div style="font-size:12px;font-weight:bold;color:#3d2010;margin-bottom:3px;">${r.author}</div>
+                    <div style="font-size:13px;color:#5a3a20;line-height:1.65;background:#fff8f0;padding:8px 10px;border-radius:0 8px 8px 8px;border:1px solid #eedcc4;">${r.content}</div>
+                </div></div>`;
+        }).join('')}`;
+    document.getElementById('forum-reply-panel').style.display = 'flex';
+}
+
+function closeReplyPanel() { document.getElementById('forum-reply-panel').style.display = 'none'; }
 
 commit();
 db.c.forEach(c => { if(c.autoOn) resetTimer(c.id); });
