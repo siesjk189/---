@@ -1913,7 +1913,7 @@ async function generateForumPosts() {
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${db.api.k}` },
             body: JSON.stringify({
                 model: db.api.model || 'gpt-3.5-turbo',
-                max_tokens: 3500,
+                max_tokens: 4000,
                 messages: [{
                     role: 'user',
                     content: `你是"捉鬼师论坛"内容生成器。背景：现代都市，捉鬼师是真实存在的职业，普通人也知道可以委托他们。
@@ -1931,7 +1931,7 @@ async function generateForumPosts() {
 - likes为10-999随机整数
 
 严格JSON格式，不含其他内容：
-{"posts":[{"id":1,"type":"commission","author":"昵称","authorId":null,"title":"标题","content":"正文50-1500字","likes":88,"replies":[{"author":"昵称","authorId":null,"content":"回复内容"}]}]}`
+{"posts":[{"id":1,"type":"commission","author":"昵称","authorId":null,"title":"标题","content":"正文50-200字","likes":88,"replies":[{"author":"昵称","authorId":null,"content":"回复内容"}]}]}`
                 }]
             })
         });
