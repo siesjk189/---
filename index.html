@@ -1929,7 +1929,18 @@ async function generateForumPosts() {
             })
         });
         const data = await res.json();
-        let text = data.choices[0].message.content.trim().replace(/```json|```/g, '').trim();
+               let text = data.choices[0].message.content.trim();
+        
+        // 🌟 过滤器：自动寻找 JSON 的起始和结束位置，无视前后的废话
+        const start = text.indexOf('{');
+        const end = text.lastIndexOf('}');
+        
+        if (start === -1 || end === -1) {
+            throw new Error("AI没有返回标准的JSON格式，请重试");
+        }
+        
+        text = text.substring(start, end + 1); // 只截取 {} 括号里的内容
+        
         const parsed = JSON.parse(text);
         parsed.posts.forEach(p => { p.liked = false; p.shareCount = 0; });
         db.forumData = parsed;
