@@ -2500,7 +2500,7 @@ async function submitCharAnswers() {
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${db.api.k}` },
             body: JSON.stringify({
                 model: db.api.model || 'gpt-3.5-turbo',
-                max_tokens: 2000,
+                max_tokens: 3500,
                 messages: [{
                     role: 'user',
                     content: `你是角色${char.n}，性格设定：${char.p}\n\n你向用户提了10个问题，以下是用户的作答。请以你的角色身份，对每个答案给出真实符合人设的反应（15-30字，可以是惊喜、感动、吐槽、调侃等）。\n\n${qaText}\n\n严格以JSON返回，格式：{"reactions":[{"q":"问题","userAnswer":"用户答案","reaction":"角色反应"}]}，不含其他内容。`
