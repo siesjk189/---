@@ -207,7 +207,7 @@
                     <div style="font-size:36px;margin-right:14px;">📋</div>
                     <div>
                         <div style="font-weight:bold;font-size:16px;color:#333;">来填问卷吧</div>
-                        <div style="font-size:12px;color:#999;margin-top:3px;">10题问卷 · 互相了解 · AI真实回应</div>
+                        <div style="font-size:12px;color:#999;margin-top:3px;">5题问卷 · 互相了解 · AI真实回应</div>
                     </div>
                     <div style="margin-left:auto;color:#ccc;font-size:20px;">›</div>
                 </div>
@@ -239,16 +239,16 @@
             <div style="font-size:13px;color:#888;margin-bottom:14px;text-align:center;">选择问卷模式</div>
             <div onclick="startQuiz('user')" style="background:#fff;border-radius:12px;padding:18px 16px;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,0.07);cursor:pointer;border:1.5px solid #eee;">
                 <div style="font-weight:bold;font-size:15px;color:#333;margin-bottom:4px;">✏️ 我来出题</div>
-                <div style="font-size:12px;color:#999;">你填写10个问题，让角色通过人设和聊天记忆来回答，并说明理由</div>
+                <div style="font-size:12px;color:#999;">你填写5个问题，让角色通过人设和聊天记忆来回答，并说明理由</div>
             </div>
             <div onclick="startQuiz('char')" style="background:#fff;border-radius:12px;padding:18px 16px;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,0.07);cursor:pointer;border:1.5px solid #eee;">
                 <div style="font-weight:bold;font-size:15px;color:#333;margin-bottom:4px;">🎲 角色来出题</div>
-                <div style="font-size:12px;color:#999;">AI生成10个问题，你来回答，然后角色对每个答案作出真实反应</div>
+                <div style="font-size:12px;color:#999;">AI生成5个问题，你来回答，然后角色对每个答案作出真实反应</div>
             </div>
         </div>
         <!-- 用户出题填写页 -->
         <div id="quiz-user-write" style="display:none;flex-direction:column;flex:1;overflow:hidden;">
-            <div style="padding:12px 16px;background:#fff;border-bottom:0.5px solid #eee;font-size:13px;color:#666;">填写10个你想问角色的问题</div>
+            <div style="padding:12px 16px;background:#fff;border-bottom:0.5px solid #eee;font-size:13px;color:#666;">填写5个你想问角色的问题</div>
             <div style="flex:1;overflow-y:auto;padding:12px 16px;" id="quiz-user-questions-area"></div>
             <div style="padding:10px 16px;background:#fff;border-top:0.5px solid #eee;">
                 <button onclick="submitUserQuestions()" style="width:100%;padding:12px;background:var(--wechat-green);color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:bold;cursor:pointer;">提交问题，让角色作答 ›</button>
@@ -2392,7 +2392,7 @@ function startQuiz(mode) {
     if (mode === 'user') {
         // 生成10个输入框
         let html = '';
-        for (let i = 1; i <= 10; i++) {
+        for (let i = 1; i <= 5; i++) {
             html += `<div style="background:#fff;border-radius:10px;padding:12px 14px;margin-bottom:10px;box-shadow:0 1px 3px rgba(0,0,0,0.06);">
                 <div style="font-size:12px;color:#999;margin-bottom:6px;">第 ${i} 题</div>
                 <input id="uq-${i}" type="text" placeholder="请输入问题..." style="width:100%;border:none;outline:none;font-size:14px;color:#333;background:transparent;">
@@ -2420,10 +2420,10 @@ async function _quizGenerateCharQuestions() {
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${db.api.k}` },
             body: JSON.stringify({
                 model: db.api.model || 'gpt-3.5-turbo',
-                max_tokens: 1000,
+                max_tokens: 900,
                 messages: [{
                     role: 'user',
-                    content: `你是角色${char.n}，性格：${char.p.slice(0,200)}。\n近期聊天记录：${memory || '暂无'}\n\n请以你的角色身份，向用户提出10个真实、有趣、符合你性格的问题（可以是关于用户的喜好、日常、对你的感觉等）。直接以JSON返回，格式：{"questions":["问题1","问题2",...]}，不含其他内容。`
+                    content: `你是角色${char.n}，性格：${char.p.slice(0,200)}。\n近期聊天记录：${memory || '暂无'}\n\n请以你的角色身份，向用户提出5个真实、有趣、符合你性格的问题（可以是关于用户的喜好、日常、对你的感觉等）。直接以JSON返回，格式：{"questions":["问题1","问题2",...]}，不含其他内容。`
                 }]
             })
         });
@@ -2453,7 +2453,7 @@ async function submitUserQuestions() {
     const char = db.c.find(x => x.id == quizCharId);
     if (!char) return;
     const questions = [];
-    for (let i = 1; i <= 10; i++) {
+    for (let i = 1; i <= 5; i++) {
         const el = document.getElementById('uq-' + i);
         if (el && el.value.trim()) questions.push(el.value.trim());
     }
@@ -2508,7 +2508,7 @@ async function submitCharAnswers() {
                 max_tokens: 2000,
                 messages: [{
                     role: 'user',
-                    content: `你是角色${char.n}，性格设定：${char.p}\n\n你向用户提了10个问题，以下是用户的作答。请以你的角色身份，对每个答案给出真实符合人设的反应（15-30字，可以是惊喜、感动、吐槽、调侃等）。\n\n${qaText}\n\n严格以JSON返回，格式：{"reactions":[{"q":"问题","userAnswer":"用户答案","reaction":"角色反应"}]}，不含其他内容。`
+                    content: `你是角色${char.n}，性格设定：${char.p}\n\n你向用户提了5个问题，以下是用户的作答。请以你的角色身份，对每个答案给出真实符合人设的反应（15-30字，可以是惊喜、感动、吐槽、调侃等）。\n\n${qaText}\n\n严格以JSON返回，格式：{"reactions":[{"q":"问题","userAnswer":"用户答案","reaction":"角色反应"}]}，不含其他内容。`
                 }]
             })
         });
