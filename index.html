@@ -281,30 +281,35 @@
     </div>
 
     <!-- ═══════════════ 捉鬼师论坛 ═══════════════ -->
-    <div id="forum-room" style="position:absolute;inset:0;background:#f0ece6;z-index:1500;display:none;flex-direction:column;">
-        <!-- 导航栏 -->
-        <div class="nav" style="background:#2c1810;border-bottom:1px solid #4a2c1a;">
-            <div class="back-btn" onclick="closeForumPage()" style="color:#d4a96a;">‹ 返回</div>
-            <div class="nav-title" style="color:#d4a96a;font-family:serif;letter-spacing:2px;">☽ 捉鬼师论坛 ☾</div>
-            <div onclick="refreshForum()" style="position:absolute;right:14px;font-size:12px;color:#d4a96a;cursor:pointer;background:rgba(255,255,255,0.1);padding:4px 10px;border-radius:10px;white-space:nowrap;">🔄 刷新</div>
-        </div>
-        <!-- 分类标签栏 -->
-        <div style="display:flex;gap:0;background:#3d2010;overflow-x:auto;flex-shrink:0;border-bottom:1px solid #5a3520;">
-            <div onclick="filterForumTab('all')" id="ftab-all" style="flex-shrink:0;padding:9px 14px;font-size:12px;color:#d4a96a;cursor:pointer;border-bottom:2px solid #d4a96a;font-weight:bold;">全部</div>
-            <div onclick="filterForumTab('commission')" id="ftab-commission" style="flex-shrink:0;padding:9px 14px;font-size:12px;color:#a08060;cursor:pointer;border-bottom:2px solid transparent;">委托</div>
-            <div onclick="filterForumTab('help')" id="ftab-help" style="flex-shrink:0;padding:9px 14px;font-size:12px;color:#a08060;cursor:pointer;border-bottom:2px solid transparent;">求助</div>
-            <div onclick="filterForumTab('share')" id="ftab-share" style="flex-shrink:0;padding:9px 14px;font-size:12px;color:#a08060;cursor:pointer;border-bottom:2px solid transparent;">见闻</div>
-            <div onclick="filterForumTab('discuss')" id="ftab-discuss" style="flex-shrink:0;padding:9px 14px;font-size:12px;color:#a08060;cursor:pointer;border-bottom:2px solid transparent;">讨论</div>
-        </div>
-        <!-- 帖子列表 -->
-        <div id="forum-list" style="flex:1;overflow-y:auto;padding:10px;"></div>
-        <!-- 加载遮罩 -->
-        <div id="forum-loading" style="display:none;position:absolute;inset:0;background:rgba(240,236,230,0.93);z-index:100;align-items:center;justify-content:center;flex-direction:column;gap:14px;">
-            <div style="font-size:32px;">👻</div>
-            <div style="color:#6b4226;font-size:14px;">正在加载论坛...</div>
-        </div>
+    <!-- 捉鬼师论坛（修复版） -->
+<div id="forum-room" style="position:absolute;inset:0;background:#f0ece6;z-index:1500;display:none;flex-direction:column;">
+    <div class="nav" style="background:#2c1810;border-bottom:1px solid #4a2c1a;">
+        <div class="back-btn" onclick="closeForumPage()" style="color:#d4a96a;">‹ 返回</div>
+        <div class="nav-title" style="color:#d4a96a;font-family:serif;letter-spacing:2px;">☽ 捉鬼师论坛 ☾</div>
+        <div onclick="refreshForum()" style="position:absolute;right:14px;font-size:12px;color:#d4a96a;cursor:pointer;background:rgba(255,255,255,0.1);padding:4px 10px;border-radius:10px;white-space:nowrap;">🔄 刷新</div>
     </div>
-
+    <div style="display:flex;gap:0;background:#3d2010;overflow-x:auto;flex-shrink:0;border-bottom:1px solid #5a3520;">
+        <div onclick="filterForumTab('all')" id="ftab-all" style="flex-shrink:0;padding:9px 14px;font-size:12px;color:#d4a96a;cursor:pointer;border-bottom:2px solid #d4a96a;font-weight:bold;">全部</div>
+        <div onclick="filterForumTab('commission')" id="ftab-commission" style="flex-shrink:0;padding:9px 14px;font-size:12px;color:#a08060;cursor:pointer;border-bottom:2px solid transparent;">委托</div>
+        <div onclick="filterForumTab('help')" id="ftab-help" style="flex-shrink:0;padding:9px 14px;font-size:12px;color:#a08060;cursor:pointer;border-bottom:2px solid transparent;">求助</div>
+        <div onclick="filterForumTab('share')" id="ftab-share" style="flex-shrink:0;padding:9px 14px;font-size:12px;color:#a08060;cursor:pointer;border-bottom:2px solid transparent;">见闻</div>
+        <div onclick="filterForumTab('discuss')" id="ftab-discuss" style="flex-shrink:0;padding:9px 14px;font-size:12px;color:#a08060;cursor:pointer;border-bottom:2px solid transparent;">讨论</div>
+    </div>
+    <div id="forum-list" style="flex:1;overflow-y:auto;padding:10px;"></div>
+    <div id="forum-loading" style="display:none;position:absolute;inset:0;background:rgba(240,236,230,0.93);z-index:100;align-items:center;justify-content:center;flex-direction:column;gap:14px;">
+        <div style="font-size:32px;">👻</div><div style="color:#6b4226;font-size:14px;">正在加载论坛...</div>
+    </div>
+</div>
+<!-- 回复弹层（修复版） -->
+<div id="forum-reply-panel" style="position:absolute;inset:0;background:rgba(0,0,0,0.5);z-index:2200;display:none;align-items:flex-end;justify-content:center;">
+    <div style="background:#f0ece6;border-radius:16px 16px 0 0;width:100%;max-height:80%;display:flex;flex-direction:column;">
+        <div style="padding:12px 16px;border-bottom:1px solid #d8cfc4;display:flex;justify-content:space-between;align-items:center;background:#3d2010;border-radius:16px 16px 0 0;">
+            <span style="font-weight:bold;font-size:14px;color:#d4a96a;">💬 回复</span>
+            <span onclick="closeReplyPanel()" style="color:#d4a96a;cursor:pointer;font-size:22px;">×</span>
+        </div>
+        <div id="forum-reply-list" style="flex:1;overflow-y:auto;padding:12px 14px;"></div>
+    </div>
+</div>
     <!-- 帖子详情（回复弹层） -->
     <div id="forum-reply-panel" style="position:absolute;inset:0;background:rgba(0,0,0,0.5);z-index:2200;display:none;align-items:flex-end;justify-content:center;">
         <div style="background:#f0ece6;border-radius:16px 16px 0 0;width:100%;max-height:80%;display:flex;flex-direction:column;">
@@ -1892,10 +1897,10 @@ function filterForumTab(tab) {
 async function generateForumPosts() {
     if (!db.api.u || !db.api.k) { alert("请先在'我'界面配置 API 接口和密钥"); return; }
     const loading = document.getElementById('forum-loading');
-    if (loading) loading.style.display = 'flex';
+    loading.style.display = 'flex';
 
     const charInfo = db.c.map(c => {
-        const netmatch = (c.p || "").match(/论坛昵称[""「]([^""」\n]+)[""」]/);
+        const netmatch = c.p.match(/论坛昵称[""「]([^""」\n]+)[""」]/);
         return `${c.n}（论坛昵称：${netmatch ? netmatch[1] : '未知'}，authorId:${c.id}）`;
     }).join('、');
 
@@ -1909,60 +1914,32 @@ async function generateForumPosts() {
                 max_tokens: 3500,
                 messages: [{
                     role: 'user',
-                    content: `你是"捉鬼师论坛"内容生成器。请生成10条帖子（含commission, help, share, discuss类型）。已知角色：${charInfo}。请严格按JSON格式返回。`
+                    content: `你是"捉鬼师论坛"内容生成器。背景：现代都市，捉鬼师是真实存在的职业，普通人也知道可以委托他们。
+
+已知角色：${charInfo || '暂无'}
+
+请生成10条帖子，要求：
+- 类型分布：commission（委托）2-3条、help（求助）2条、share（见闻）2-3条、discuss（讨论）2条
+- 发帖人分布：已知角色2-3条（用其论坛昵称，authorId填对应数字），其余为陌生人（authorId填null，自拟昵称）
+- 委托帖：具体地点+灵异现象+报酬金额，语气像真实委托
+- 求助帖：捉鬼师描述遭遇，寻求行家建议
+- 见闻帖：目击者叙述，有细节感
+- 讨论帖：行业八卦、技术讨论，有争议性
+- 每帖3-9条回复，回复者也是陌生人或已知角色，有互动感、有情绪
+- likes为10-999随机整数
+
+严格JSON格式，不含其他内容：
+{"posts":[{"id":1,"type":"commission","author":"昵称","authorId":null,"title":"标题","content":"正文100-200字","likes":88,"replies":[{"author":"昵称","authorId":null,"content":"回复内容"}]}]}`
                 }]
             })
         });
         const data = await res.json();
-        
-        if (!data.choices || !data.choices[0]) {
-            const errMsg = (data.error && data.error.message) ? data.error.message : JSON.stringify(data);
-            throw new Error("API未返回有效内容：" + errMsg);
-        }
-
         let text = data.choices[0].message.content.trim().replace(/```json|```/g, '').trim();
         const parsed = JSON.parse(text);
         parsed.posts.forEach(p => { p.liked = false; p.shareCount = 0; });
         db.forumData = parsed;
         commit();
         renderForum();
-    } catch(e) {
-        const list = document.getElementById('forum-list');
-        if (list) {
-            list.innerHTML = `<div style="color:#c0392b;padding:30px;text-align:center;font-size:14px;">加载失败：${e.message}<br><br><span onclick="generateForumPosts()" style="color:#d4a96a;cursor:pointer;text-decoration:underline;">点击重试</span></div>`;
-        }
-    } finally {
-        if (loading) loading.style.display = 'none';
-    }
-}
-
-function renderForum() {
-    const list = document.getElementById('forum-list');
-    if (!list) return;
-    if (!db.forumData || !db.forumData.posts) {
-        list.innerHTML = `<div style="height:300px;display:flex;flex-direction:column;justify-content:center;align-items:center;color:#888;">
-            <p>论坛空空如也...</p>
-            <button onclick="generateForumPosts()" style="margin-top:15px;padding:8px 20px;background:#d4a96a;color:#1a1a2e;border:none;border-radius:20px;font-weight:bold;">同步最新帖子</button>
-        </div>`;
-        return;
-    }
-    const posts = db.forumData.posts;
-    const typeMap = { commission: '委托', help: '求助', share: '见闻', discuss: '讨论' };
-    list.innerHTML = posts.map(p => `
-        <div class="forum-item" onclick="showPostDetail(${p.id})">
-            <div class="forum-item-header">
-                <span class="forum-tag tag-${p.type}">${typeMap[p.type]}</span>
-                <span class="forum-author">${p.author}</span>
-            </div>
-            <div class="forum-item-title">${p.title}</div>
-            <div class="forum-item-footer">
-                <span>❤️ ${p.likes + (p.liked ? 1 : 0)}</span>
-                <span>💬 ${p.replies.length}</span>
-            </div>
-        </div>
-    `).join('');
-}
-
     } catch(e) {
         const list = document.getElementById('forum-list');
         if (list) list.innerHTML = `<div style="color:#c0392b;padding:30px;text-align:center;font-size:14px;">加载失败：${e.message}<br><br><span onclick="generateForumPosts()" style="color:#d4a96a;cursor:pointer;text-decoration:underline;">点击重试</span></div>`;
