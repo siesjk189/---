@@ -1920,8 +1920,8 @@ async function generateForumPosts() {
 
 已知角色：${charInfo || '暂无'}
 
-请生成6条帖子，要求：
-- 类型分布：commission（委托）2条、help（求助）2条、share（见闻）1条、discuss（讨论）1条
+请生成5条帖子，要求：
+- 类型分布：commission（委托）2条、help（求助）1条、share（见闻）1条、discuss（讨论）1条
 - 发帖人分布：已知角色0到2条（用其论坛昵称，authorId填对应数字），其余为陌生人（authorId填null，自拟昵称）
 - 委托帖：具体地点+灵异现象+报酬金额，语气像真实委托
 - 求助帖：捉鬼师描述遭遇，寻求行家建议
@@ -1931,7 +1931,7 @@ async function generateForumPosts() {
 - likes为10-999随机整数
 
 严格JSON格式，不含其他内容：
-{"posts":[{"id":1,"type":"commission","author":"昵称","authorId":null,"title":"标题","content":"正文50-200字","likes":88,"replies":[{"author":"昵称","authorId":null,"content":"回复内容"}]}]}`
+{"posts":[{"id":1,"type":"commission","author":"昵称","authorId":null,"title":"标题","content":"正文50-150字","likes":88,"replies":[{"author":"昵称","authorId":null,"content":"回复内容"}]}]}`
                 }]
             })
         });
