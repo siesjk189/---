@@ -794,8 +794,8 @@ function removeTyping() {
     if(el) el.remove();
 }
 
-async function fetchAI(targetId = null, isAuto = false) {
-    const tid = targetId || curChatId;
+async function fetchAI(isAuto = false) {
+    const tid = isAuto || curChatId;
     if(!tid) return;
     if(!db.api.u || !db.api.k) { alert("请先在'我'界面配置 API 接口和密钥"); return; }
     const char = db.c.find(x=>x.id==tid);
@@ -998,8 +998,8 @@ async function autoUpdateInnerState(tid) {
     if(!char) return;
         // --- 计算时间感知的逻辑开始 ---
     let timeInfo = "";
-    if(db.timeAware && history && history.length > 0) {
-        const lastT = history[history.length-1].t;
+    if(db.timeOn && char.msgs && char.msgs.length > 0) {
+        const lastT = char.msgs[char.msgs.length-1].t;
         const diff = (Date.now() - lastT) / 1000; 
         if(diff < 60) timeInfo = `(距离上次通话刚过去 ${Math.floor(diff)} 秒)`;
         else if(diff < 3600) timeInfo = `(距离上次通话已过去 ${Math.floor(diff/60)} 分钟)`;
@@ -1355,7 +1355,7 @@ function hideModal() { document.getElementById('modal-box').style.display='none'
 function manageMsg(i) {
     showModal('编辑消息', () => { db.m[curChatId][i].c=document.getElementById('e-m').value; commit(); renderChat(); }, `<textarea id="e-m" class="input-item" style="height:150px">${db.m[curChatId][i].c}</textarea><p onclick="db.m[curChatId].splice(${i},1);hideModal();commit();renderChat();" style="color:red;padding:10px;text-align:center;cursor:pointer;">删除</p>`);
 }
-function resetTimer(cid) { if(timers[cid]) clearTimeout(timers[cid]); const c=db.c.find(x=>x.id==cid); if(!c||!c.autoOn)return; const ms=(Math.floor(Math.random()*(c.maxT-c.minT+1))+c.minT)*60000; timers[cid]=setTimeout(()=>fetchAI(cid, true), ms); }
+function resetTimer(cid) { if(timers[cid]) clearTimeout(timers[cid]); const c=db.c.find(x=>x.id==cid); if(!c||!c.autoOn)return; const ms=(Math.floor(Math.random()*(c.maxT-c.minT+1))+c.minT)*60000; timers[cid]=setTimeout(()=>fetchAI(cid), ms); }
 
 async function fetchModels() {
     const url = document.getElementById('api-url').value;
@@ -1489,9 +1489,16 @@ async function generateNovels() {
                 }]
             })
         });
-        const data = await res.json();
+        let data;
+        try { data = await res.json(); } catch(jsonErr) { throw new Error('API 返回格式错误，请检查接口地址'); }
+        if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+            const errMsg = (data.error && data.error.message) ? data.error.message : JSON.stringify(data).slice(0, 120);
+            throw new Error('API 错误：' + errMsg);
+        }
         let text = data.choices[0].message.content.trim().replace(/```json|```/g, '').trim();
-        const parsed = JSON.parse(text);
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) throw new Error('模型未返回有效 JSON，请重试');
+        const parsed = JSON.parse(jsonMatch[0]);
         db.novelData = parsed;
         if (!db.novelFavorites) db.novelFavorites = {};
         commit();
@@ -1928,35 +1935,19 @@ async function generateForumPosts() {
                 }]
             })
         });
-                const data = await res.json();
-        let rawContent = data.choices[0].message.content.trim();
-        
-        // 1. 使用正则表达式精准提取 JSON 部分，防止 AI 的“废话”干扰
-        const jsonMatch = rawContent.match(/\{[\s\S]*\}/);
-        
-        if (jsonMatch) {
-            try {
-                // 2. 只解析匹配到的 {} 之间的内容
-                const parsed = JSON.parse(jsonMatch[0]);
-                
-                // 3. 检查是否有 posts 数组，防止数据结构不对
-                if (parsed && Array.isArray(parsed.posts)) {
-                    parsed.posts.forEach(p => { 
-                        p.liked = false; 
-                        p.shareCount = 0; 
-                    });
-                    db.forumData = parsed;
-                } else {
-                    console.error("数据结构不完整: 缺少 posts");
-                }
-            } catch (e) {
-                console.error("JSON 解析失败:", e);
-                alert("论坛内容格式错误，请尝试重新刷新");
-            }
-        } else {
-            console.error("AI 未返回有效 JSON");
-            alert("捉鬼师论坛信号不稳定，请稍后重试");
+        let data;
+        try { data = await res.json(); } catch(jsonErr) { throw new Error('API 返回格式错误，请检查接口地址'); }
+        if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+            const errMsg = (data.error && data.error.message) ? data.error.message : JSON.stringify(data).slice(0, 120);
+            throw new Error('API 错误：' + errMsg);
         }
+        let text = data.choices[0].message.content.trim().replace(/```json|```/g, '').trim();
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) throw new Error('模型未返回有效 JSON，请重试');
+        const parsed = JSON.parse(jsonMatch[0]);
+        if (!parsed.posts || !Array.isArray(parsed.posts)) throw new Error('JSON 格式不符，缺少 posts 字段');
+        parsed.posts.forEach(p => { p.liked = false; p.shareCount = 0; });
+        db.forumData = parsed;
         commit();
         renderForum();
     } catch(e) {
