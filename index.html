@@ -1293,7 +1293,9 @@ function openCharEdit(id = null) {
         if(isE) db.c = db.c.map(x=>x.id===id?data:x); else { db.c.push(data); db.m[data.id]=[]; }
         commit(); if(data.autoOn) resetTimer(data.id);
     }, `
-        <div class="input-group"><span class="input-label">昵称</span><input id="i-n" class="input-item" value="${char.n}"></div>
+        <div class="input-group"><span class="input-label">昵称</span><select id="i-n" class="input-item" style="padding:4px 0;font-size:15px;border:none;outline:none;background:transparent;width:100%;">
+            ${['秦梧','骆云影','佟小雨','白虎','朱雀','玄武','青龙','琥珀','秦叶咏','汤嘉维'].map(name=>`<option value="${name}" ${char.n===name?'selected':''}>${name}</option>`).join('')}
+        </select></div>
         <div class="input-group"><span class="input-label">头像 URL</span><input id="i-a" class="input-item" value="${char.a}"></div>
         <div class="input-group"><span class="input-label">设定</span><textarea id="i-p" class="input-item" style="height:60px">${char.p}</textarea></div>
         <div class="input-group"><span class="input-label">背景图 URL</span><input id="i-bg" class="input-item" value="${char.bg||''}"></div>
