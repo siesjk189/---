@@ -2426,44 +2426,41 @@ async function _quizGenerateCharQuestions() {
                 }]
             })
         });
+        if (!res.ok) throw new Error(`API错误 ${res.status}`);
         const data = await res.json();
+        if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+            throw new Error(data.error ? data.error.message : 'API未返回有效内容');
+        }
         let text = data.choices[0].message.content.trim();
         text = text.replace(/```json/gi, '').replace(/```/g, '').trim();
         let parsed;
-        // 尝试多种方式解析JSON
-        try {
-            // 方式1：直接解析整个文本
-            parsed = JSON.parse(text);
-        } catch(e1) {
-            try {
-                // 方式2：提取{}块
-                const jsonMatch = text.match(/\{[\s\S]*\}/);
-                if (jsonMatch) parsed = JSON.parse(jsonMatch[0]);
-                else throw new Error('no json block');
-            } catch(e2) {
-                try {
-                    // 方式3：提取[]数组块作为questions
-                    const arrMatch = text.match(/\[[\s\S]*\]/);
-                    if (arrMatch) parsed = { questions: JSON.parse(arrMatch[0]) };
-                    else throw new Error('no array');
-                } catch(e3) {
-                    // 方式4：用正则提取引号内的问题文本
-                    const qMatches = text.match(/"([^"]{4,100})"/g);
-                    if (qMatches && qMatches.length >= 3) {
-                        parsed = { questions: qMatches.slice(0, 5).map(s => s.replace(/^"|"$/g, '')) };
-                    } else {
-                        // 方式5：按行提取（有些模型用1. 2.格式输出）
-                        const lines = text.split('\n').map(l => l.replace(/^\d+[\.\。\、]\s*/, '').trim()).filter(l => l.length > 4 && l.length < 100);
-                        if (lines.length >= 3) {
-                            parsed = { questions: lines.slice(0, 5) };
-                        } else {
-                            throw new Error('无法解析返回内容，请重试');
-                        }
-                    }
-                }
-            }
+        // 尝试多种方式解析
+        const tryParse = (t) => {
+            try { return JSON.parse(t); } catch(e) { return null; }
+        };
+        parsed = tryParse(text);
+        if (!parsed || !parsed.questions) {
+            const jsonMatch = text.match(/\{[\s\S]*?\}/);
+            if (jsonMatch) parsed = tryParse(jsonMatch[0]);
         }
-        quizGeneratedQuestions = (parsed.questions || []).slice(0, 5);
+        if (!parsed || !parsed.questions) {
+            const arrMatch = text.match(/\[[\s\S]*?\]/);
+            if (arrMatch) { const arr = tryParse(arrMatch[0]); if (arr) parsed = { questions: arr }; }
+        }
+        if (!parsed || !parsed.questions) {
+            // 提取引号内文本
+            const qMatches = text.match(/"([^"]{4,80})"/g);
+            if (qMatches && qMatches.length >= 3) parsed = { questions: qMatches.slice(0, 5).map(s => s.replace(/^"|"$/g, '')) };
+        }
+        if (!parsed || !parsed.questions) {
+            // 按行提取（支持 1. 一、① 等各种序号格式）
+            const lines = text.split('\n')
+                .map(l => l.replace(/^[\s\d一二三四五①②③④⑤]+[\.\。\、\s]\s*/, '').trim())
+                .filter(l => l.length > 4 && l.length < 100 && !l.startsWith('{') && !l.startsWith('['));
+            if (lines.length >= 3) parsed = { questions: lines.slice(0, 5) };
+        }
+        if (!parsed || !parsed.questions || parsed.questions.length === 0) throw new Error('无法解析返回内容，请重试');
+        quizGeneratedQuestions = parsed.questions.slice(0, 5);
         if (quizGeneratedQuestions.length === 0) throw new Error('未能获取问题，请重试');
         // 渲染答题框
         let html = '';
@@ -2512,16 +2509,26 @@ async function submitUserQuestions() {
                 }]
             })
         });
+        if (!res.ok) throw new Error(`API错误 ${res.status}`);
         const data = await res.json();
-        let text = data.choices[0].message.content.trim().replace(/```json|```/gi, '').trim();
-        let parsed;
-        try { parsed = JSON.parse(text); }
-        catch(e1) {
-            const m = text.match(/\{[\s\S]*\}/);
-            if (m) parsed = JSON.parse(m[0]);
-            else throw new Error('无法解析返回内容');
+        if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+            throw new Error(data.error ? data.error.message : 'API未返回有效内容');
         }
-        quizResultData = { mode: 'user', items: parsed.answers };
+        let text = data.choices[0].message.content.trim().replace(/```json|```/gi, '').trim();
+        const tryParse = (t) => { try { return JSON.parse(t); } catch(e) { return null; } };
+        let parsed = tryParse(text);
+        if (!parsed || !parsed.answers) {
+            const m = text.match(/\{[\s\S]*\}/);
+            if (m) parsed = tryParse(m[0]);
+        }
+        // 降级：如果还是解析不了，把返回文字按问题数量切成段落显示
+        if (!parsed || !parsed.answers || parsed.answers.length === 0) {
+            const lines = text.split(/\n+/).filter(l => l.trim().length > 2);
+            const items = questions.map((q, i) => ({ q, a: lines[i] || text, reason: '' }));
+            quizResultData = { mode: 'user', items };
+        } else {
+            quizResultData = { mode: 'user', items: parsed.answers };
+        }
         _renderQuizResult();
     } catch(e) {
         alert('角色作答失败：' + e.message);
@@ -2554,16 +2561,26 @@ async function submitCharAnswers() {
                 }]
             })
         });
+        if (!res.ok) throw new Error(`API错误 ${res.status}`);
         const data = await res.json();
-        let text = data.choices[0].message.content.trim().replace(/```json|```/gi, '').trim();
-        let parsed;
-        try { parsed = JSON.parse(text); }
-        catch(e1) {
-            const m = text.match(/\{[\s\S]*\}/);
-            if (m) parsed = JSON.parse(m[0]);
-            else throw new Error('无法解析返回内容');
+        if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+            throw new Error(data.error ? data.error.message : 'API未返回有效内容');
         }
-        quizResultData = { mode: 'char', items: parsed.reactions };
+        let text = data.choices[0].message.content.trim().replace(/```json|```/gi, '').trim();
+        const tryParse = (t) => { try { return JSON.parse(t); } catch(e) { return null; } };
+        let parsed = tryParse(text);
+        if (!parsed || !parsed.reactions) {
+            const m = text.match(/\{[\s\S]*\}/);
+            if (m) parsed = tryParse(m[0]);
+        }
+        // 降级：解析不了就把返回文字按问题切段显示
+        if (!parsed || !parsed.reactions || parsed.reactions.length === 0) {
+            const lines = text.split(/\n+/).filter(l => l.trim().length > 2);
+            const items = answers.map((item, i) => ({ q: item.q, userAnswer: item.a, reaction: lines[i] || text }));
+            quizResultData = { mode: 'char', items };
+        } else {
+            quizResultData = { mode: 'char', items: parsed.reactions };
+        }
         _renderQuizResult();
     } catch(e) {
         alert('生成反应失败：' + e.message);
@@ -2986,7 +3003,7 @@ async function msCallAPI(resultType, punishmentText) {
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${db.api.k}` },
             body: JSON.stringify({
                 model: db.api.model || 'gpt-3.5-turbo',
-                max_tokens: 300,
+                max_tokens: 600,
                 messages: [
                     {
                         role: 'system',
@@ -2996,13 +3013,22 @@ async function msCallAPI(resultType, punishmentText) {
                 ]
             })
         });
+        if (!res.ok) {
+            const errData = await res.json().catch(() => ({}));
+            throw new Error(errData.error ? errData.error.message : `API错误 ${res.status}`);
+        }
         const data = await res.json();
         const text = (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content)
             ? data.choices[0].message.content.trim()
-            : '（生成失败，请重试）';
-        contentEl.textContent = text;
+            : null;
+        if (!text) {
+            const errMsg = data.error ? data.error.message : '未返回内容';
+            contentEl.textContent = `（生成失败：${errMsg}，请关闭后重试）`;
+        } else {
+            contentEl.textContent = text;
+        }
     } catch (e) {
-        contentEl.textContent = '生成失败：' + e.message;
+        contentEl.textContent = `（生成失败：${e.message}，请关闭后重试）`;
     }
 }
 
