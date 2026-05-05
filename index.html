@@ -381,14 +381,18 @@
     <!-- 小说列表页面 -->
     <div id="novel-room" style="position:absolute;inset:0;background:#f5f5f5;z-index:1500;display:none;flex-direction:column;">
         <div class="nav" style="padding:0 12px;">
-            <div class="back-btn" onclick="closeNovelPage()">‹ 返回</div>
+            <div class="back-btn" onclick="closeNovelPage()">&#8249; 返回</div>
             <div class="nav-title">看小说</div>
-            <!-- 右侧按钮区：伴读头像（圆角方形）+ 换一换 -->
-            <div style="position:absolute;right:12px;display:flex;align-items:center;gap:8px;">
+            <div style="position:absolute;right:12px;">
                 <div id="novel-companion-btn" onclick="openCompanionPicker()" title="选择一起看小说的角色"
                      style="width:30px;height:30px;border-radius:6px;background:#ddd center/cover no-repeat;cursor:pointer;border:1.5px solid #ccc;font-size:13px;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;"></div>
-                <div onclick="refreshNovels()" style="font-size:12px;color:var(--link-color);cursor:pointer;background:#e8e8e8;padding:5px 9px;border-radius:10px;white-space:nowrap;">换一换</div>
             </div>
+        </div>
+        <!-- 搜索栏 -->
+        <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:#fff;border-bottom:0.5px solid #eee;flex-shrink:0;">
+            <input id="novel-tag-input" placeholder="输入标签搜索（如：古风、甜宠）" style="flex:1;border:1px solid #ddd;border-radius:20px;padding:7px 14px;font-size:13px;outline:none;background:#f7f7f7;">
+            <button onclick="searchNovelsByTag()" style="flex-shrink:0;padding:7px 14px;background:var(--wechat-green);color:#fff;border:none;border-radius:20px;font-size:13px;cursor:pointer;">搜索</button>
+            <button onclick="refreshNovels()" style="flex-shrink:0;padding:7px 12px;background:#e8e8e8;color:#555;border:none;border-radius:20px;font-size:13px;cursor:pointer;">换一换</button>
         </div>
         <!-- 标签切换：书单 / 收藏 -->
         <div style="display:flex;border-bottom:0.5px solid #ddd;background:#fff;flex-shrink:0;">
@@ -396,9 +400,8 @@
             <div id="novel-tab-fav" onclick="switchNovelTab('fav')" style="flex:1;text-align:center;padding:10px 0;font-size:14px;color:#888;border-bottom:2px solid transparent;cursor:pointer;">收藏夹</div>
         </div>
         <div id="novel-list-area" style="flex:1;overflow-y:auto;padding:12px;"></div>
-        <!-- 加载中遮罩 -->
         <div id="novel-loading" style="display:none;position:absolute;inset:0;background:rgba(255,255,255,0.9);z-index:100;align-items:center;justify-content:center;flex-direction:column;gap:12px;">
-            <div style="font-size:28px;">📚</div>
+            <div style="font-size:28px;">&#128218;</div>
             <div style="color:#666;font-size:14px;">正在生成书单...</div>
         </div>
     </div>
@@ -2000,11 +2003,12 @@ function closeChapterRoom() {
 }
 
 async function readChapter(chIdx, key) {
-    // Find book
+    // Find book — 优先从书单找，再从收藏找
     let book = null;
     if (currentNovelIndex !== null && db.novelData && db.novelData.books) {
         book = db.novelData.books[currentNovelIndex];
-    } else if (db.novelFavorites && db.novelFavorites[key]) {
+    }
+    if (!book && db.novelFavorites && db.novelFavorites[key]) {
         book = db.novelFavorites[key].bookInfo;
     }
     if (!book) return;
@@ -2015,31 +2019,31 @@ async function readChapter(chIdx, key) {
     const body = document.getElementById('chapter-room-body');
     room.style.display = 'flex';
 
-    // 1. 优先从收藏缓存读取
+    // 1. 优先从收藏缓存读取（持久化，刷新也在）
     if (db.novelFavorites && db.novelFavorites[key] && db.novelFavorites[key].chapters && db.novelFavorites[key].chapters[chIdx]) {
         const cached = db.novelFavorites[key].chapters[chIdx];
-        renderChapterContent(cached, key, chIdx, book);
         db.novelFavorites[key].progress = chIdx;
         commit();
+        renderChapterContent(cached, key, chIdx, book);
         return;
     }
 
-    // 2. 从临时缓存读取（未收藏时也不重复生成）
+    // 2. 从临时缓存读取（本次会话内不重复生成）
     const tempKey = key + '_' + chIdx;
     if (novelChapterTempCache[tempKey]) {
         const cached = novelChapterTempCache[tempKey];
-        renderChapterContent(cached, key, chIdx, book);
-        // 如果此时已经收藏，同步进收藏缓存
+        // 如果已收藏，顺手存进去
         if (db.novelFavorites && db.novelFavorites[key]) {
             if (!db.novelFavorites[key].chapters) db.novelFavorites[key].chapters = {};
             db.novelFavorites[key].chapters[chIdx] = cached;
             db.novelFavorites[key].progress = chIdx;
             commit();
         }
+        renderChapterContent(cached, key, chIdx, book);
         return;
     }
 
-    // 3. 生成章节
+    // 3. 需要生成
     if (!db.api.u || !db.api.k) { alert("请先配置API"); return; }
     body.innerHTML = `<div style="text-align:center;color:#999;padding:40px 0;">正在生成章节内容...</div>`;
 
@@ -2051,31 +2055,34 @@ async function readChapter(chIdx, key) {
         const base = db.api.u.replace(/\/chat\/completions\/?$/, '').replace(/\/$/, '');
         let prompt;
         if (needAnnotations) {
-            prompt = `请为小说《${book.title}》（简介：${book.summary}）的"${chapterTitle}"生成1000-2000字正文。
-同时，作为角色"${companionChar.n}"（性格简述：${companionChar.p.slice(0,150)}），选择3-5个有趣片段写简短点评（20-40字）。
-严格按JSON返回：{"chapter":"正文内容（\\n分段）","annotations":[{"quote":"原文精确片段","comment":"角色点评"}]}`;
+            prompt = `请为小说《${book.title}》（简介：${book.summary}）的"${chapterTitle}"生成1000-2000字正文。同时，作为角色"${companionChar.n}"（性格：${companionChar.p.slice(0,100)}），选3-5个片段写点评（20-40字）。只输出JSON，不含其他文字：{"chapter":"正文（\\n分段）","annotations":[{"quote":"原文片段","comment":"点评"}]}`;
         } else {
-            prompt = `请为小说《${book.title}》（简介：${book.summary}）的"${chapterTitle}"生成1000-2000字正文，直接输出。`;
+            prompt = `请为小说《${book.title}》（简介：${book.summary}）的"${chapterTitle}"生成1000-2000字正文，直接输出正文内容，不需要其他说明。`;
         }
         const res = await fetch(`${base}/chat/completions`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${db.api.k}` },
             body: JSON.stringify({ model: db.api.model || 'gpt-3.5-turbo', max_tokens: 2500, messages: [{ role: 'user', content: prompt }] })
         });
+        if (!res.ok) { const ed = await res.json().catch(()=>({})); throw new Error(ed.error ? ed.error.message : `API错误 ${res.status}`); }
         const data = await res.json();
+        if (!data.choices || !data.choices[0] || !data.choices[0].message) throw new Error(data.error ? data.error.message : 'API未返回内容');
         let text = data.choices[0].message.content.trim();
         let chData;
         if (needAnnotations) {
-            text = text.replace(/```json|```/g, '').trim();
-            chData = JSON.parse(text);
+            const clean = text.replace(/```json|```/g, '').trim();
+            const tryP = (t) => { try { return JSON.parse(t); } catch(e) { return null; } };
+            chData = tryP(clean);
+            if (!chData) { const m = clean.match(/\{[\s\S]*\}/); chData = m ? tryP(m[0]) : null; }
+            if (!chData) chData = { chapter: text, annotations: [] }; // 降级：直接用文本
         } else {
             chData = { chapter: text, annotations: [] };
         }
 
-        // 保存到临时缓存（无论是否收藏）
+        // 存临时缓存
         novelChapterTempCache[tempKey] = chData;
 
-        // 如果已收藏，同步保存到收藏缓存
+        // 如果已收藏，存进持久缓存
         if (db.novelFavorites && db.novelFavorites[key]) {
             if (!db.novelFavorites[key].chapters) db.novelFavorites[key].chapters = {};
             db.novelFavorites[key].chapters[chIdx] = chData;
@@ -2420,10 +2427,10 @@ async function _quizGenerateCharQuestions() {
             body: JSON.stringify({
                 model: db.api.model || 'gpt-3.5-turbo',
                 max_tokens: 800,
-                messages: [{
-                    role: 'user',
-                    content: `你是角色${char.n}，性格：${char.p.slice(0,150)}。请以你的角色身份向用户提出5个有趣的问题。\n【重要】你的回复必须是且只能是一个合法JSON对象，格式如下，不允许有任何其他文字、解释、markdown标记：\n{"questions":["问题一","问题二","问题三","问题四","问题五"]}`
-                }]
+                messages: [
+                    { role: 'system', content: '你只能输出纯JSON，绝对不能有任何其他文字、说明或markdown。' },
+                    { role: 'user', content: `你是角色${char.n}，性格：${char.p.slice(0,150)}。以你的角色身份向用户提出5个有趣的问题。只输出这个JSON：{"questions":["问题一","问题二","问题三","问题四","问题五"]}` }
+                ]
             })
         });
         if (!res.ok) throw new Error(`API错误 ${res.status}`);
@@ -2503,10 +2510,10 @@ async function submitUserQuestions() {
             body: JSON.stringify({
                 model: db.api.model || 'gpt-3.5-turbo',
                 max_tokens: 2000,
-                messages: [{
-                    role: 'user',
-                    content: `你是角色${char.n}，性格设定：${char.p}\n角色记忆区：${char.memory||'无'}\n近期聊天记录（用于参考）：\n${memory||'无'}\n\n用户向你提出了以下问题，请以你的角色身份，结合人设和聊天记忆，诚实地回答每道题并说明理由（每题回答20-40字）。\n\n问题列表：\n${qText}\n\n严格以JSON返回，格式：{"answers":[{"q":"问题","a":"回答","reason":"理由"}]}，不含其他内容。`
-                }]
+                messages: [
+                    { role: 'system', content: '你只能输出纯JSON，绝对不能有任何其他文字或markdown。' },
+                    { role: 'user', content: `你是角色${char.n}，性格：${char.p}\n记忆：${char.memory||'无'}\n近期聊天：${memory||'无'}\n\n用户问你：\n${qText}\n\n每题用角色身份诚实作答，20-40字，并说明理由。只输出：{"answers":[{"q":"问题","a":"回答","reason":"理由"}]}` }
+                ]
             })
         });
         if (!res.ok) throw new Error(`API错误 ${res.status}`);
@@ -2555,10 +2562,10 @@ async function submitCharAnswers() {
             body: JSON.stringify({
                 model: db.api.model || 'gpt-3.5-turbo',
                 max_tokens: 2000,
-                messages: [{
-                    role: 'user',
-                    content: `你是角色${char.n}，性格设定：${char.p}\n\n你向用户提了5个问题，以下是用户的作答。请以你的角色身份，对每个答案给出真实符合人设的反应（15-30字，可以是惊喜、感动、吐槽、调侃等）。\n\n${qaText}\n\n严格以JSON返回，格式：{"reactions":[{"q":"问题","userAnswer":"用户答案","reaction":"角色反应"}]}，不含其他内容。`
-                }]
+                messages: [
+                    { role: 'system', content: '你只能输出纯JSON，绝对不能有任何其他文字或markdown。' },
+                    { role: 'user', content: `你是角色${char.n}，性格：${char.p}\n\n你问了用户这些问题，以下是用户的答案。用角色身份对每个答案给出真实反应（15-30字，可以惊喜、感动、调侃）。只输出：{"reactions":[{"q":"问题","userAnswer":"用户答案","reaction":"角色反应"}]}\n\n${qaText}` }
+                ]
             })
         });
         if (!res.ok) throw new Error(`API错误 ${res.status}`);
