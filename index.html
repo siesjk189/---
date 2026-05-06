@@ -1331,7 +1331,8 @@ function openCharEdit(id = null) {
             memory: document.getElementById('i-memory').value,
             innerState: document.getElementById('i-innerState').value,
             minT: parseInt(document.getElementById('i-min').value),
-            maxT: parseInt(document.getElementById('i-max').value)
+            maxT: parseInt(document.getElementById('i-max').value),
+            poke: document.getElementById('i-poke') ? document.getElementById('i-poke').value : (char.poke || '')
         };
         if(isE) db.c = db.c.map(x=>x.id===id?data:x); else { db.c.push(data); db.m[data.id]=[]; }
         commit(); if(data.autoOn) resetTimer(data.id);
