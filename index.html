@@ -1140,37 +1140,28 @@ function triggerCharPoke(charId) {
 
 // 应用角色戳一戳（角色资料页"应用"按钮）
 async function applyCharPoke(id) {
-    if (!id) { alert("请先保存角色后再应用戳一戳"); return; }
+    if (!id || id === 'null') { alert("请先保存角色后再应用戳一戳"); return; }
     const pokeInput = document.getElementById('i-poke');
     const pokeTxt = pokeInput ? pokeInput.value.trim() : '';
     if (!pokeTxt) { alert("请先填写戳一戳文案"); return; }
-    if (!db.api.u || !db.api.k) { alert("请先配置API"); return; }
+
     const char = db.c.find(x => x.id == id);
-    if (!char) { alert("请先保存角色"); return; }
+    if (!char) { alert("角色不存在，请刷新后重试"); return; }
+
+    // 直接保存 poke 到角色对象（不依赖AI判断，避免判断失败导致保存不上）
+    char.poke = pokeTxt;
+    commit();
 
     hideModal();
-    // 打开与该角色的对话
-    startChat(id);
-    // 用户发送询问消息
-    const askMsg = `你觉得这个戳一戳怎么样？"${pokeTxt}"`;
-    db.m[id].push({ r: 'user', c: askMsg, t: Date.now() });
-    commit(); renderChat();
 
-    // 让AI以角色人设判断是否同意
-    await _fetchAIWithExtra(id, `[系统提示] 用户想把你的戳一戳设置为："${pokeTxt}"。请根据你的人设，判断自己是否会同意这个戳一戳文案，并给出符合人设的回应和理由。如果同意，回复中包含"同意"二字；如果不同意，回复中包含"不同意"或"拒绝"。回复要简短自然，像真实聊天。`);
-
-    // 读取AI最后回复判断是否同意
-    const msgs = db.m[id] || [];
-    const lastAI = [...msgs].reverse().find(m => m.r === 'ai');
-    if (lastAI) {
-        const agreed = lastAI.c.includes('同意') && !lastAI.c.includes('不同意') && !lastAI.c.includes('不同');
-        if (agreed) {
-            char.poke = pokeTxt;
-            commit();
-            // 系统提示气泡
-            db.m[id].push({ r: 'system', c: `📳 系统：${char.n} 更换了戳一戳「${pokeTxt}」`, t: Date.now() });
-            commit(); renderChat();
-        }
+    // 如果配置了API，打开对话让角色作出符合人设的回应
+    if (db.api.u && db.api.k) {
+        startChat(typeof id === 'string' ? parseInt(id) : id);
+        db.m[char.id].push({ r: 'system', c: `📳 系统：${char.n} 更换了戳一戳「${pokeTxt}」`, t: Date.now() });
+        commit(); renderChat();
+        _fetchAIWithExtra(char.id, `[系统提示] 用户刚刚把你的戳一戳文案设置为："${pokeTxt}"。请根据你的人设，对这件事给出符合性格的简短自然回应，像真实发微信一样。`);
+    } else {
+        alert(`✅ 戳一戳已设置为：${pokeTxt}`);
     }
 }
 
