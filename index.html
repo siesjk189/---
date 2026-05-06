@@ -21,7 +21,7 @@
         #phone-wrapper::before { content: ''; position: absolute; top: 12px; left: 50%; transform: translateX(-50%); width: 120px; height: 30px; background: #111; border-radius: 0 0 20px 20px; z-index: 9999; }
         #phone-shell { width: 100%; height: 100%; background: var(--bg-color); position: relative; display: flex; flex-direction: column; border-radius: 44px; overflow: hidden; }
 
-        @media (max-width: 480px) {
+        @media (max-width: 600px) {
             body { padding: 0; background: #000; align-items: stretch; }
             #phone-wrapper { width: 100%; height: 100dvh; border-radius: 0; padding: 0; box-shadow: none; background: transparent; }
             #phone-wrapper::before { display: none; }
@@ -1701,6 +1701,11 @@ function updateCompanionBtn() {
 }
 
 async function generateNovels() {
+    // 如果已有书单数据，直接渲染，不重新生成
+    if (db.novelData && db.novelData.books && db.novelData.books.length > 0) {
+        renderNovelList();
+        return;
+    }
     if (!db.api.u || !db.api.k) { alert("请先在'我'界面配置 API 接口和密钥"); return; }
     const loading = document.getElementById('novel-loading');
     loading.style.display = 'flex';
@@ -1714,17 +1719,27 @@ async function generateNovels() {
                 max_tokens: 1500,
                 messages: [{
                     role: 'user',
-                    content: `请随机生成6本虚构小说的信息，风格各异，每本包含书名、标签（2-3个）、简介（50字左右）、以及该小说的章节目录（5章，每章标题）。请严格按照以下JSON格式返回，不要有任何其他内容：{"books":[{"title":"书名","tags":["标签1","标签2"],"summary":"简介","chapters":["第一章 章节名","第二章 章节名","第三章 章节名","第四章 章节名","第五章 章节名"]}]}`
+                    content: `请随机生成6本虚构小说的信息，风格各异，每本包含书名、标签（2-3个）、简介（50字左右）、以及该小说的章节目录（5章，每章标题）。请严格按照以下JSON格式返回，不要有任何其他内容，不要用代码块包裹：{"books":[{"title":"书名","tags":["标签1","标签2"],"summary":"简介","chapters":["第一章 章节名","第二章 章节名","第三章 章节名","第四章 章节名","第五章 章节名"]}]}`
                 }]
             })
         });
+        if (!res.ok) {
+            const errData = await res.json().catch(() => ({}));
+            throw new Error(errData.error ? errData.error.message : `API错误 ${res.status}`);
+        }
         const data = await res.json();
         if (!data.choices || !data.choices[0] || !data.choices[0].message) throw new Error(data.error ? data.error.message : 'API未返回内容');
-        let text = data.choices[0].message.content.trim().replace(/```json|```/gi, '').trim();
+        let text = data.choices[0].message.content || '';
+        // 增强解析：去除所有代码块标记、首尾空白，再多次尝试提取JSON
         const tryP = t => { try { return JSON.parse(t); } catch(e) { return null; } };
+        text = text.replace(/```json/gi, '').replace(/```/gi, '').trim();
         let parsed = tryP(text);
-        if (!parsed || !parsed.books) { const m = text.match(/\{[\s\S]*\}/); if (m) parsed = tryP(m[0]); }
-        if (!parsed || !parsed.books) throw new Error('无法解析返回内容，请重试');
+        if (!parsed || !parsed.books) {
+            // 尝试提取最外层 { } 包围的内容
+            const m = text.match(/\{[\s\S]*\}/);
+            if (m) parsed = tryP(m[0]);
+        }
+        if (!parsed || !parsed.books || parsed.books.length === 0) throw new Error('无法解析返回内容，请重试');
         db.novelData = parsed;
         if (!db.novelFavorites) db.novelFavorites = {};
         novelChapterTempCache = {};
@@ -1766,13 +1781,17 @@ async function searchNovelsByTag() {
                 }]
             })
         });
+        if (!res.ok) {
+            const errData = await res.json().catch(() => ({}));
+            throw new Error(errData.error ? errData.error.message : `API错误 ${res.status}`);
+        }
         const data = await res.json();
         if (!data.choices || !data.choices[0] || !data.choices[0].message) throw new Error(data.error ? data.error.message : 'API未返回内容');
-        let text = data.choices[0].message.content.trim().replace(/```json|```/gi, '').trim();
         const tryP2 = t => { try { return JSON.parse(t); } catch(e) { return null; } };
+        let text = (data.choices[0].message.content || '').replace(/```json/gi, '').replace(/```/gi, '').trim();
         let parsed = tryP2(text);
         if (!parsed || !parsed.books) { const m = text.match(/\{[\s\S]*\}/); if (m) parsed = tryP2(m[0]); }
-        if (!parsed || !parsed.books) throw new Error('无法解析返回内容，请重试');
+        if (!parsed || !parsed.books || parsed.books.length === 0) throw new Error('无法解析返回内容，请重试');
         db.novelData = parsed;
         if (!db.novelFavorites) db.novelFavorites = {};
         novelChapterTempCache = {};
