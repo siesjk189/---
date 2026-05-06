@@ -1144,25 +1144,45 @@ async function applyCharPoke(id) {
     const pokeInput = document.getElementById('i-poke');
     const pokeTxt = pokeInput ? pokeInput.value.trim() : '';
     if (!pokeTxt) { alert("请先填写戳一戳文案"); return; }
+    if (!db.api.u || !db.api.k) { alert("请先配置API"); return; }
 
     const char = db.c.find(x => x.id == id);
     if (!char) { alert("角色不存在，请刷新后重试"); return; }
 
-    // 直接保存 poke 到角色对象（不依赖AI判断，避免判断失败导致保存不上）
-    char.poke = pokeTxt;
-    commit();
-
     hideModal();
+    startChat(typeof id === 'string' ? parseInt(id) : id);
 
-    // 如果配置了API，打开对话让角色作出符合人设的回应
-    if (db.api.u && db.api.k) {
-        startChat(typeof id === 'string' ? parseInt(id) : id);
-        db.m[char.id].push({ r: 'system', c: `📳 系统：${char.n} 更换了戳一戳「${pokeTxt}」`, t: Date.now() });
-        commit(); renderChat();
-        _fetchAIWithExtra(char.id, `[系统提示] 用户刚刚把你的戳一戳文案设置为："${pokeTxt}"。请根据你的人设，对这件事给出符合性格的简短自然回应，像真实发微信一样。`);
-    } else {
-        alert(`✅ 戳一戳已设置为：${pokeTxt}`);
+    // 用户发起询问消息
+    const askMsg = `你觉得这个戳一戳怎么样？"${pokeTxt}"`;
+    db.m[char.id].push({ r: 'user', c: askMsg, t: Date.now() });
+    commit(); renderChat();
+
+    // 让AI判断，要求在回复末尾附加隐藏标记 ##POKE_AGREE## 或 ##POKE_DENY##
+    await _fetchAIWithExtra(char.id, `[系统提示] 用户想把你的戳一戳设置为："${pokeTxt}"。请根据你的人设，给出符合性格的真实回应。回复要简短自然，像真实发微信一样。回复完毕后，必须在最后一行单独附加一个标记：如果你同意使用这个戳一戳，附加 ##POKE_AGREE##；如果不同意，附加 ##POKE_DENY##。这个标记用户不会看到。`);
+
+    // 读取AI最后回复，查找隐藏标记并处理
+    const msgs = db.m[char.id] || [];
+    // 找到最后几条AI消息，检查是否含有标记
+    const aiMsgs = [...msgs].reverse().filter(m => m.r === 'ai').slice(0, 3);
+    let agreed = false;
+    for (const m of aiMsgs) {
+        if (m.c.includes('##POKE_AGREE##')) {
+            agreed = true;
+            m.c = m.c.replace('##POKE_AGREE##', '').trim();
+            break;
+        }
+        if (m.c.includes('##POKE_DENY##')) {
+            m.c = m.c.replace('##POKE_DENY##', '').trim();
+            break;
+        }
     }
+
+    if (agreed) {
+        char.poke = pokeTxt;
+        commit();
+        db.m[char.id].push({ r: 'system', c: `📳 系统：${char.n} 更换了戳一戳「${pokeTxt}」`, t: Date.now() });
+    }
+    commit(); renderChat();
 }
 
 // 带额外system消息的AI调用（不污染聊天记录）
