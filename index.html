@@ -1886,6 +1886,9 @@ async function generateNovels() {
         // 增强解析：去除所有代码块标记、首尾空白，再多次尝试提取JSON
         const tryP = t => { try { return JSON.parse(t); } catch(e) { return null; } };
         text = text.replace(/```json/gi, '').replace(/```/gi, '').trim();
+        // 如果有思考前缀，找到第一个 { 开始截取
+        const firstBrace = text.indexOf('{');
+        if (firstBrace > 0) text = text.slice(firstBrace);
         let parsed = tryP(text);
         if (!parsed || !parsed.books) {
             // 尝试提取最外层 { } 包围的内容
@@ -1942,6 +1945,7 @@ async function searchNovelsByTag() {
         // 格式校验已由 parseAPIContent() 统一处理
         const tryP2 = t => { try { return JSON.parse(t); } catch(e) { return null; } };
         let text = (parseAPIContent(data)).replace(/```json/gi, '').replace(/```/gi, '').trim();
+        const fb = text.indexOf('{'); if (fb > 0) text = text.slice(fb);
         let parsed = tryP2(text);
         if (!parsed || !parsed.books) { const m = text.match(/\{[\s\S]*\}/); if (m) parsed = tryP2(m[0]); }
         if (!parsed || !parsed.books || parsed.books.length === 0) throw new Error('无法解析返回内容，请重试');
@@ -3183,11 +3187,11 @@ async function msCallAPI(resultType, punishmentText) {
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${db.api.k}` },
             body: JSON.stringify({
                 model: db.api.model || 'gpt-3.5-turbo',
-                max_tokens: 600,
+                max_tokens: 1200,
                 messages: [
                     {
                         role: 'system',
-                        content: `你正在扮演角色 ${char.n}。你的性格设定是：${char.p}。\n请用第一人称、符合角色性格的语气回复，不要用括号描述动作，只输出纯文字对话，像真实的微信消息一样。`
+                        content: `你正在扮演角色 ${char.n}。你的性格设定是：${char.p.slice(0, 300)}。\n请用第一人称、符合角色性格的语气回复，不要用括号描述动作，只输出纯文字对话，像真实的微信消息一样。`
                     },
                     { role: 'user', content: prompt }
                 ]
@@ -3199,11 +3203,8 @@ async function msCallAPI(resultType, punishmentText) {
         }
         const data = await res.json();
         // 格式校验已由 parseAPIContent() 统一处理
-        const rawContent = parseAPIContent(data);
-        const text = (rawContent && typeof rawContent === 'string') ? rawContent.trim() : '';
-        if (!text) {
-            throw new Error('未返回内容，请重试');
-        }
+        const text = parseAPIContent(data).trim();
+        if (!text) throw new Error('未返回内容，请重试');
         contentEl.textContent = text;
     } catch (e) {
         contentEl.textContent = `（生成失败：${e.message}，请关闭后重试）`;
@@ -3332,7 +3333,7 @@ ${userInfo ? userInfo : ''}
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${db.api.k}` },
             body: JSON.stringify({
                 model: db.api.model || 'gpt-3.5-turbo',
-                max_tokens: 1000,
+                max_tokens: 1500,
                 messages: [
                     { role: 'system', content: systemPrompt },
                     { role: 'user', content: userContent }
@@ -3341,7 +3342,7 @@ ${userInfo ? userInfo : ''}
         });
         if (!res.ok) throw new Error(`API错误 ${res.status}`);
         const data = await res.json();
-        const text = (parseAPIContent(data) || '').trim();
+        const text = parseAPIContent(data).trim();
         if (!text) throw new Error('未返回内容');
         if (appendMode) {
             encCurrentStory += '\n\n' + text;
