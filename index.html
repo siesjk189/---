@@ -119,6 +119,13 @@
                     </div>
                     <div style="margin-left:auto;color:#ccc;font-size:20px;">›</div>
                 </div>
+                <div onclick="openEncounterPage()" style="display:flex;align-items:center;background:linear-gradient(135deg,#fff5f9 0%,#fff 60%);border-radius:12px;padding:18px 16px;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,0.08);cursor:pointer;border:1px solid #fde0ec;">
+                    <div>
+                        <div style="font-weight:bold;font-size:16px;color:#c0607a;">✦ 下一次相遇</div>
+                        <div style="font-size:12px;color:#c0a0ab;margin-top:3px;">如果我们在另一个世界相遇……</div>
+                    </div>
+                    <div style="margin-left:auto;color:#f0b8cc;font-size:20px;">›</div>
+                </div>
             </div>
         </div>
 
@@ -174,7 +181,109 @@
         <div class="tab-item" onclick="showTab('me',this)">♢我</div>
     </div>
 
-    <!-- ═══════════════ 小游戏页面 ═══════════════ -->
+    <!-- ═══════════════ 下一次相遇 ═══════════════ -->
+    <div id="encounter-room" style="position:absolute;inset:0;background:#fdf6f9;z-index:1500;display:none;flex-direction:column;">
+        <div class="nav" style="background:#fff;border-bottom:0.5px solid #fde0ec;">
+            <div class="back-btn" onclick="closeEncounterPage()">‹ 返回</div>
+            <div class="nav-title" style="color:#c0607a;">✦ 下一次相遇</div>
+        </div>
+
+        <!-- 主页：收藏列表 + 新建按钮 -->
+        <div id="encounter-home" style="flex:1;overflow-y:auto;padding:16px;">
+            <div onclick="openEncounterSetup()" style="display:flex;align-items:center;justify-content:center;gap:8px;background:linear-gradient(135deg,#f9d0e0,#fce8f3);border-radius:14px;padding:18px 16px;margin-bottom:16px;cursor:pointer;border:1.5px dashed #e8a0be;">
+                <span style="font-size:22px;">✦</span>
+                <div>
+                    <div style="font-weight:bold;font-size:15px;color:#c0607a;">创造一次新的相遇</div>
+                    <div style="font-size:12px;color:#c0a0ab;margin-top:2px;">选择角色、世界与关系，让故事重新开始</div>
+                </div>
+            </div>
+            <div style="font-size:12px;color:#c0a0ab;margin-bottom:10px;padding-left:2px;">✦ 已收藏的相遇</div>
+            <div id="encounter-saved-list">
+                <div style="text-align:center;color:#ddb8c8;font-size:13px;padding:30px 0;">还没有收藏，快去创造第一次相遇吧~</div>
+            </div>
+        </div>
+
+        <!-- 设置页：选角色+填参数 -->
+        <div id="encounter-setup" style="display:none;flex:1;overflow-y:auto;flex-direction:column;">
+            <div style="padding:16px 16px 0;">
+                <div style="font-size:13px;color:#c0607a;font-weight:bold;margin-bottom:12px;">第一步：选择角色</div>
+                <div id="encounter-char-list" style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:20px;"></div>
+
+                <div style="font-size:13px;color:#c0607a;font-weight:bold;margin-bottom:8px;">第二步：设定世界</div>
+                <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px;" id="world-presets">
+                    <span onclick="setPreset('world','现代都市')" class="enc-tag">现代都市</span>
+                    <span onclick="setPreset('world','古代宫廷')" class="enc-tag">古代宫廷</span>
+                    <span onclick="setPreset('world','西方奇幻')" class="enc-tag">西方奇幻</span>
+                    <span onclick="setPreset('world','末世废土')" class="enc-tag">末世废土</span>
+                    <span onclick="setPreset('world','校园青春')" class="enc-tag">校园青春</span>
+                    <span onclick="setPreset('world','仙侠修真')" class="enc-tag">仙侠修真</span>
+                    <span onclick="setPreset('world','星际宇宙')" class="enc-tag">星际宇宙</span>
+                </div>
+                <input id="enc-world" placeholder="或自定义世界设定，如：赛博朋克都市…" style="width:100%;border:1px solid #f0c8da;border-radius:8px;padding:10px 12px;font-size:13px;outline:none;background:#fff;margin-bottom:20px;color:#333;">
+
+                <div style="font-size:13px;color:#c0607a;font-weight:bold;margin-bottom:8px;">第三步：设定关系</div>
+                <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px;">
+                    <span onclick="setPreset('relation','青梅竹马')" class="enc-tag">青梅竹马</span>
+                    <span onclick="setPreset('relation','兄妹')" class="enc-tag">兄妹</span>
+                    <span onclick="setPreset('relation','陌生人初遇')" class="enc-tag">陌生人初遇</span>
+                    <span onclick="setPreset('relation','宿敌')" class="enc-tag">宿敌</span>
+                    <span onclick="setPreset('relation','契约伴侣')" class="enc-tag">契约伴侣</span>
+                    <span onclick="setPreset('relation','师徒')" class="enc-tag">师徒</span>
+                    <span onclick="setPreset('relation','暗恋对象')" class="enc-tag">暗恋对象</span>
+                </div>
+                <input id="enc-relation" placeholder="或自定义关系，如：双向暗恋的同事…" style="width:100%;border:1px solid #f0c8da;border-radius:8px;padding:10px 12px;font-size:13px;outline:none;background:#fff;margin-bottom:20px;color:#333;">
+
+                <div style="font-size:13px;color:#c0607a;font-weight:bold;margin-bottom:8px;">第四步：剧情走向 <span style="font-weight:normal;color:#c0a0ab;font-size:12px;">（可选）</span></div>
+                <textarea id="enc-plot" placeholder="如：第一次见面时发生了什么？有什么特别的契机？留空则由AI自由发挥…" style="width:100%;border:1px solid #f0c8da;border-radius:8px;padding:10px 12px;font-size:13px;outline:none;background:#fff;margin-bottom:20px;color:#333;height:80px;resize:none;font-family:inherit;line-height:1.6;"></textarea>
+
+                <button onclick="generateEncounter()" style="width:100%;padding:14px;border:none;border-radius:12px;background:linear-gradient(135deg,#e87098,#c0607a);color:#fff;font-size:15px;font-weight:bold;cursor:pointer;letter-spacing:1px;margin-bottom:24px;">✦ 开始相遇</button>
+            </div>
+        </div>
+
+        <!-- 阅读页：展示生成内容 -->
+        <div id="encounter-reader" style="display:none;flex:1;overflow-y:auto;flex-direction:column;">
+            <div style="padding:20px 18px;">
+                <div id="encounter-reader-meta" style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap;"></div>
+                <div id="encounter-reader-content" style="font-size:14px;color:#333;line-height:2;white-space:pre-wrap;background:#fff;border-radius:12px;padding:18px;box-shadow:0 1px 6px rgba(192,96,122,0.08);min-height:120px;"></div>
+                <div id="encounter-reader-loading" style="display:none;text-align:center;padding:30px 0;color:#e0a0b8;font-size:14px;">
+                    <div style="font-size:28px;margin-bottom:10px;animation:enc-spin 2s linear infinite;display:inline-block;">✦</div>
+                    <div>正在编织这段故事…</div>
+                </div>
+            </div>
+            <div style="padding:0 18px 20px;display:flex;gap:10px;flex-direction:column;">
+                <button onclick="continueEncounter()" id="enc-continue-btn" style="width:100%;padding:13px;border:none;border-radius:12px;background:linear-gradient(135deg,#e87098,#c0607a);color:#fff;font-size:14px;font-weight:bold;cursor:pointer;">✦ 继续生成</button>
+                <button onclick="saveEncounter()" id="enc-save-btn" style="width:100%;padding:13px;border:1.5px solid #e8a0be;border-radius:12px;background:#fff;color:#c0607a;font-size:14px;font-weight:bold;cursor:pointer;">♡ 收藏这段相遇</button>
+                <button onclick="goBackToSetup()" style="width:100%;padding:11px;border:none;border-radius:12px;background:#f5e8ef;color:#c0a0ab;font-size:13px;cursor:pointer;">重新设定</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 收藏详情阅读弹层 -->
+    <div id="encounter-saved-reader" style="position:absolute;inset:0;background:#fdf6f9;z-index:1600;display:none;flex-direction:column;">
+        <div class="nav" style="background:#fff;border-bottom:0.5px solid #fde0ec;">
+            <div class="back-btn" onclick="closeSavedReader()">‹ 返回</div>
+            <div class="nav-title" style="color:#c0607a;">收藏的相遇</div>
+            <div id="enc-delete-btn" style="position:absolute;right:14px;font-size:12px;color:#e87098;cursor:pointer;" onclick="deleteCurrentSaved()">删除</div>
+        </div>
+        <div style="flex:1;overflow-y:auto;padding:20px 18px;">
+            <div id="saved-reader-meta" style="margin-bottom:14px;display:flex;flex-wrap:wrap;gap:8px;"></div>
+            <div id="saved-reader-content" style="font-size:14px;color:#333;line-height:2;white-space:pre-wrap;background:#fff;border-radius:12px;padding:18px;box-shadow:0 1px 6px rgba(192,96,122,0.08);"></div>
+        </div>
+        <div style="padding:16px 18px 20px;">
+            <button onclick="continueFromSaved()" style="width:100%;padding:13px;border:none;border-radius:12px;background:linear-gradient(135deg,#e87098,#c0607a);color:#fff;font-size:14px;font-weight:bold;cursor:pointer;">✦ 继续这段故事</button>
+        </div>
+    </div>
+
+    <style>
+    .enc-tag { background:#fff0f6; color:#c0607a; border:1px solid #f0c8da; border-radius:20px; padding:5px 14px; font-size:12px; cursor:pointer; user-select:none; transition:background 0.15s; }
+    .enc-tag:active, .enc-tag.selected { background:#f9d0e0; }
+    .enc-char-card { display:flex; flex-direction:column; align-items:center; gap:6px; cursor:pointer; }
+    .enc-char-card img { width:52px; height:52px; border-radius:12px; object-fit:cover; background:#eee; border:2.5px solid transparent; transition:border-color 0.2s; }
+    .enc-char-card.selected img { border-color:#e87098; }
+    .enc-char-card span { font-size:11px; color:#888; max-width:56px; text-align:center; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .enc-char-card.selected span { color:#c0607a; font-weight:bold; }
+    @keyframes enc-spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+    </style>
     <div id="game-room" style="position:absolute;inset:0;background:#f5f5f5;z-index:1500;display:none;flex-direction:column;">
         <div class="nav" style="background:#fff;border-bottom:0.5px solid #eee;">
             <div class="back-btn" onclick="closeGamePage()">‹ 返回</div>
@@ -3104,6 +3213,249 @@ async function msCallAPI(resultType, punishmentText) {
 function closeMsAiOverlay() {
     document.getElementById('ms-ai-overlay').style.display = 'none';
     closeMinesweeperGame();
+}
+
+// ═══════════════ 下一次相遇 ═══════════════
+
+let encSelectedCharIds = [];
+let encCurrentStory = '';
+let encCurrentMeta = null; // {charIds, world, relation, plot}
+let encCurrentSavedIdx = -1;
+
+function openEncounterPage() {
+    document.getElementById('encounter-room').style.display = 'flex';
+    renderEncounterSavedList();
+    showEncounterSection('home');
+}
+
+function closeEncounterPage() {
+    document.getElementById('encounter-room').style.display = 'none';
+}
+
+function showEncounterSection(sec) {
+    document.getElementById('encounter-home').style.display = sec === 'home' ? 'block' : 'none';
+    document.getElementById('encounter-setup').style.display = sec === 'setup' ? 'flex' : 'none';
+    document.getElementById('encounter-reader').style.display = sec === 'reader' ? 'flex' : 'none';
+}
+
+function openEncounterSetup() {
+    encSelectedCharIds = [];
+    encCurrentStory = '';
+    encCurrentMeta = null;
+    document.getElementById('enc-world').value = '';
+    document.getElementById('enc-relation').value = '';
+    document.getElementById('enc-plot').value = '';
+    renderEncounterCharList();
+    showEncounterSection('setup');
+}
+
+function goBackToSetup() {
+    showEncounterSection('setup');
+}
+
+function renderEncounterCharList() {
+    const el = document.getElementById('encounter-char-list');
+    if (!db.c || db.c.length === 0) {
+        el.innerHTML = '<div style="color:#ccc;font-size:13px;">请先添加角色</div>';
+        return;
+    }
+    el.innerHTML = db.c.map(c => `
+        <div class="enc-char-card ${encSelectedCharIds.includes(c.id) ? 'selected' : ''}" onclick="toggleEncChar(${c.id})" id="enc-char-${c.id}">
+            <img src="${c.a || ''}" onerror="this.style.background='#f9d0e0'">
+            <span>${c.n}</span>
+        </div>
+    `).join('');
+}
+
+function toggleEncChar(id) {
+    const idx = encSelectedCharIds.indexOf(id);
+    if (idx >= 0) { encSelectedCharIds.splice(idx, 1); }
+    else { encSelectedCharIds.push(id); }
+    renderEncounterCharList();
+}
+
+function setPreset(field, val) {
+    document.getElementById('enc-' + field).value = val;
+}
+
+async function generateEncounter(appendMode) {
+    if (!db.api.u || !db.api.k) { alert('请先在"我"界面配置 API 接口和密钥'); return; }
+    if (encSelectedCharIds.length === 0) { alert('请至少选择一个角色'); return; }
+    const world = document.getElementById('enc-world').value.trim() || '现代都市';
+    const relation = document.getElementById('enc-relation').value.trim() || '普通朋友';
+    const plot = document.getElementById('enc-plot').value.trim();
+
+    const chars = encSelectedCharIds.map(id => db.c.find(c => c.id === id)).filter(Boolean);
+
+    encCurrentMeta = { charIds: [...encSelectedCharIds], world, relation, plot };
+
+    showEncounterSection('reader');
+    const contentEl = document.getElementById('encounter-reader-content');
+    const loadingEl = document.getElementById('encounter-reader-loading');
+    const metaEl = document.getElementById('encounter-reader-meta');
+
+    // Render meta tags
+    metaEl.innerHTML = chars.map(c => `<span style="display:inline-flex;align-items:center;gap:5px;background:#fff0f6;border-radius:20px;padding:4px 10px;font-size:12px;color:#c0607a;border:1px solid #f0c8da;"><img src="${c.a||''}" style="width:18px;height:18px;border-radius:4px;object-fit:cover;background:#eee;">${c.n}</span>`).join('') +
+        `<span style="background:#fff0f6;border-radius:20px;padding:4px 10px;font-size:12px;color:#c0607a;border:1px solid #f0c8da;">🌍 ${world}</span>` +
+        `<span style="background:#fff0f6;border-radius:20px;padding:4px 10px;font-size:12px;color:#c0607a;border:1px solid #f0c8da;">♡ ${relation}</span>`;
+
+    if (!appendMode) {
+        encCurrentStory = '';
+        contentEl.textContent = '';
+    }
+    loadingEl.style.display = 'block';
+    document.getElementById('enc-continue-btn').disabled = true;
+    document.getElementById('enc-save-btn').disabled = true;
+
+    const charDescs = chars.map(c => `【${c.n}】性格人设：${c.p}`).join('\n\n');
+    const userInfo = db.u.n ? `用户角色名：${db.u.n}${db.u.p ? '，性格：' + db.u.p : ''}` : '';
+
+    const systemPrompt = `你是一个擅长写平行宇宙番外故事的作家。
+请根据用户提供的设定，生成一段沉浸式的故事片段。
+角色信息（保留原有核心性格特征，但适配新世界设定）：
+${charDescs}
+${userInfo ? userInfo : ''}
+要求：
+1. 以小说风格写作，有场景描写、人物互动和对话。
+2. 必须体现角色性格，即使换了世界也能看出是"他/她"。
+3. 每次生成约500字，结尾留有悬念或开放性。
+4. 不要写"故事开始"之类的提示语，直接进入故事。`;
+
+    const userContent = appendMode
+        ? `请继续以下故事，接续上文，保持人物性格一致，再生成约500字：\n\n${encCurrentStory}`
+        : `世界设定：${world}\n角色关系：${relation}\n${plot ? '剧情走向/触发契机：' + plot : '请自由发挥故事开端'}\n\n请开始写这段故事。`;
+
+    try {
+        const base = db.api.u.replace(/\/chat\/completions\/?$/, '').replace(/\/$/, '');
+        const res = await fetch(`${base}/chat/completions`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${db.api.k}` },
+            body: JSON.stringify({
+                model: db.api.model || 'gpt-3.5-turbo',
+                max_tokens: 1000,
+                messages: [
+                    { role: 'system', content: systemPrompt },
+                    { role: 'user', content: userContent }
+                ]
+            })
+        });
+        if (!res.ok) throw new Error(`API错误 ${res.status}`);
+        const data = await res.json();
+        const text = (parseAPIContent(data) || '').trim();
+        if (!text) throw new Error('未返回内容');
+        if (appendMode) {
+            encCurrentStory += '\n\n' + text;
+        } else {
+            encCurrentStory = text;
+        }
+        contentEl.textContent = encCurrentStory;
+    } catch (e) {
+        contentEl.textContent = (appendMode ? encCurrentStory + '\n\n' : '') + `（生成失败：${e.message}，请重试）`;
+    } finally {
+        loadingEl.style.display = 'none';
+        document.getElementById('enc-continue-btn').disabled = false;
+        document.getElementById('enc-save-btn').disabled = false;
+    }
+}
+
+function continueEncounter() {
+    generateEncounter(true);
+}
+
+function saveEncounter() {
+    if (!encCurrentStory || !encCurrentMeta) return;
+    if (!db.encounters) db.encounters = [];
+    const chars = encCurrentMeta.charIds.map(id => db.c.find(c => c.id === id)).filter(Boolean);
+    db.encounters.unshift({
+        id: Date.now(),
+        charIds: encCurrentMeta.charIds,
+        charNames: chars.map(c => c.n),
+        charAvatars: chars.map(c => c.a || ''),
+        world: encCurrentMeta.world,
+        relation: encCurrentMeta.relation,
+        plot: encCurrentMeta.plot,
+        story: encCurrentStory,
+        savedAt: new Date().toLocaleDateString('zh-CN')
+    });
+    commit();
+    const btn = document.getElementById('enc-save-btn');
+    btn.textContent = '✓ 已收藏！';
+    btn.style.background = '#f9d0e0';
+    setTimeout(() => { btn.textContent = '♡ 收藏这段相遇'; btn.style.background = '#fff'; }, 2000);
+}
+
+function renderEncounterSavedList() {
+    const el = document.getElementById('encounter-saved-list');
+    const list = db.encounters || [];
+    if (list.length === 0) {
+        el.innerHTML = '<div style="text-align:center;color:#ddb8c8;font-size:13px;padding:30px 0;">还没有收藏，快去创造第一次相遇吧~</div>';
+        return;
+    }
+    el.innerHTML = list.map((enc, idx) => `
+        <div onclick="openSavedEncounter(${idx})" style="background:#fff;border-radius:12px;padding:16px;margin-bottom:10px;box-shadow:0 1px 4px rgba(192,96,122,0.08);cursor:pointer;border:1px solid #fde8f0;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+                ${enc.charAvatars.map((a,i) => `<img src="${a||''}" style="width:32px;height:32px;border-radius:8px;object-fit:cover;background:#f9d0e0;" onerror="this.style.background='#f9d0e0'">`).join('')}
+                <div>
+                    <div style="font-size:13px;font-weight:bold;color:#c0607a;">${enc.charNames.join(' & ')}</div>
+                    <div style="font-size:11px;color:#c0a0ab;">${enc.world} · ${enc.relation} · ${enc.savedAt}</div>
+                </div>
+            </div>
+            <div style="font-size:12px;color:#888;line-height:1.7;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">${enc.story.substring(0, 80)}…</div>
+        </div>
+    `).join('');
+}
+
+function openSavedEncounter(idx) {
+    const list = db.encounters || [];
+    if (idx < 0 || idx >= list.length) return;
+    encCurrentSavedIdx = idx;
+    const enc = list[idx];
+    document.getElementById('saved-reader-meta').innerHTML =
+        enc.charNames.map((n, i) => `<span style="display:inline-flex;align-items:center;gap:5px;background:#fff0f6;border-radius:20px;padding:4px 10px;font-size:12px;color:#c0607a;border:1px solid #f0c8da;"><img src="${enc.charAvatars[i]||''}" style="width:18px;height:18px;border-radius:4px;object-fit:cover;background:#eee;">${n}</span>`).join('') +
+        `<span style="background:#fff0f6;border-radius:20px;padding:4px 10px;font-size:12px;color:#c0607a;border:1px solid #f0c8da;">🌍 ${enc.world}</span>` +
+        `<span style="background:#fff0f6;border-radius:20px;padding:4px 10px;font-size:12px;color:#c0607a;border:1px solid #f0c8da;">♡ ${enc.relation}</span>`;
+    document.getElementById('saved-reader-content').textContent = enc.story;
+    document.getElementById('encounter-saved-reader').style.display = 'flex';
+}
+
+function closeSavedReader() {
+    document.getElementById('encounter-saved-reader').style.display = 'none';
+    encCurrentSavedIdx = -1;
+}
+
+function deleteCurrentSaved() {
+    if (encCurrentSavedIdx < 0) return;
+    if (!confirm('确定要删除这段收藏吗？')) return;
+    (db.encounters || []).splice(encCurrentSavedIdx, 1);
+    commit();
+    renderEncounterSavedList();
+    closeSavedReader();
+}
+
+function continueFromSaved() {
+    const list = db.encounters || [];
+    if (encCurrentSavedIdx < 0 || encCurrentSavedIdx >= list.length) return;
+    const enc = list[encCurrentSavedIdx];
+    // Restore state and go to reader
+    encSelectedCharIds = enc.charIds || [];
+    encCurrentStory = enc.story || '';
+    encCurrentMeta = { charIds: enc.charIds, world: enc.world, relation: enc.relation, plot: enc.plot };
+    // fill setup fields in case needed
+    document.getElementById('enc-world').value = enc.world || '';
+    document.getElementById('enc-relation').value = enc.relation || '';
+    document.getElementById('enc-plot').value = enc.plot || '';
+    closeSavedReader();
+    showEncounterSection('reader');
+    const contentEl = document.getElementById('encounter-reader-content');
+    const metaEl = document.getElementById('encounter-reader-meta');
+    const chars = encSelectedCharIds.map(id => db.c.find(c => c.id === id)).filter(Boolean);
+    metaEl.innerHTML = chars.map(c => `<span style="display:inline-flex;align-items:center;gap:5px;background:#fff0f6;border-radius:20px;padding:4px 10px;font-size:12px;color:#c0607a;border:1px solid #f0c8da;"><img src="${c.a||''}" style="width:18px;height:18px;border-radius:4px;object-fit:cover;background:#eee;">${c.n}</span>`).join('') +
+        `<span style="background:#fff0f6;border-radius:20px;padding:4px 10px;font-size:12px;color:#c0607a;border:1px solid #f0c8da;">🌍 ${enc.world}</span>` +
+        `<span style="background:#fff0f6;border-radius:20px;padding:4px 10px;font-size:12px;color:#c0607a;border:1px solid #f0c8da;">♡ ${enc.relation}</span>`;
+    contentEl.textContent = encCurrentStory;
+    document.getElementById('encounter-reader-loading').style.display = 'none';
+    document.getElementById('enc-continue-btn').disabled = false;
+    document.getElementById('enc-save-btn').disabled = false;
 }
 </script>
 </body>
