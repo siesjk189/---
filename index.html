@@ -1050,7 +1050,7 @@ async function generateAIMoments() {
 
     for (const char of selectedChars) {
         const history = db.m[char.id] || [];
-        const lastChat = history.slice(-10).map(h => `${h.r==='user'?'用户':'角色'}:${h.c}`).join('\n');
+        const lastChat = history.slice(-10).map(h => `${h.r==='user'?(db.u.n||'用户'):char.n}:${h.c}`).join('\n');
         
         try {
           // 合并连续AI消息，取最近30条作为上下文
@@ -1072,7 +1072,7 @@ async function generateAIMoments() {
                     messages:[
                         {
                             role:"system",
-                            content: `你正在扮演角色 ${char.n}。你的性格设定是：${char.p}。\n请为该角色写一条微信朋友圈动态。
+                            content: `你正在扮演角色 ${char.n}。你的性格设定是：${char.p}。\n与你聊天的用户名叫"${db.u.n||'用户'}"。\n请为该角色写一条微信朋友圈动态。
                             要求：
                             1. 必须符合人设。
                             2. 语气要像真实生活动态（分享心情、吐槽、美景等）。
@@ -1180,7 +1180,7 @@ async function fetchAI(isAuto = false) {
         const base = db.api.u.replace(/\/chat\/completions\/?$/, '').replace(/\/$/, '');
         // 去掉模型名里可能含有的前缀标签，如 [按次]、[免费] 等
         const modelName = db.api.model || "gpt-3.5-turbo";
-        const systemPrompt = `你正在扮演${char.n}，通过手机微信和用户聊天。
+        const systemPrompt = `你正在扮演${char.n}，通过手机微信和用户聊天。用户的名字是"${db.u.n}"${db.u.p ? `，用户的性格/角色设定：${db.u.p}` : ''}。请在对话中直接称呼用户为"${db.u.n}"，不要用"用户"、"你"等泛称代替。
 性格设定:${char.p}
 ${char.memory ? '【角色记忆】:\n' + char.memory + '\n' : ''}${char.innerState ? '【当前状态/心声】（仅供参考，绝对不要在消息中描述动作或心声）:\n' + char.innerState + '\n' : ''}${timeCtx ? timeCtx + '\n【时间要求】请根据当前时间自然聊天，不要提出与时间不符的事情（如下午4点不要问吃饭了吗）。\n' : ''}${activeWI ? '规则:' + activeWI + '\n' : ''}
 【自检思维链】在回复前，请在脑海中依次完成以下步骤（不要输出思维链内容）：
