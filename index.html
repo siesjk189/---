@@ -1014,7 +1014,12 @@ function render() {
 
     document.getElementById('moments-list').innerHTML = db.mo.map((m, idx) => {
         const author = (m.uid==='me') ? db.u : (db.c.find(x=>x.id==m.uid) || {n:'未知', a:''});
-        const comments = (m.comments||[]).map(c => `<div style="font-size:12px;color:#333;margin-top:4px;"><b style="color:var(--link-color);">${c.n}：</b>${c.t}</div>`).join('');
+        const comments = (m.comments||[]).map(c => {
+            const isUser = c.isUser || (c.n === (db.u.n||'我'));
+            return `<div style="font-size:12px;color:#333;margin-top:4px;">
+                <b style="color:${isUser?'#c0607a':'var(--link-color)'};">${c.n}：</b>${c.t}
+            </div>`;
+        }).join('');
         return `<div class="cell" style="align-items:flex-start;padding:15px;background:#fff;flex-direction:column;">
             <div style="display:flex;align-items:flex-start;width:100%;">
                 <img src="${author.a}" class="avatar">
@@ -1023,12 +1028,12 @@ function render() {
                     <p style="margin-top:5px;white-space:pre-wrap;">${m.t}</p>
                     ${m.img?`<img src="${m.img}" style="max-width:200px;margin-top:8px;border-radius:4px;">`: ''}
                     <div style="display:flex;gap:12px;margin-top:10px;">
-                        <span style="color:red;font-size:11px;cursor:pointer;" onclick="db.mo.splice(${idx},1);commit();">删除</span>
-                        <span style="color:var(--link-color);font-size:11px;cursor:pointer;" onclick="aiCommentMoment(${idx})">💬 回复</span>
+                        <span style="color:red;font-size:11px;cursor:pointer;" onclick="event.stopPropagation();db.mo.splice(${idx},1);commit();">删除</span>
+                        <span style="color:var(--link-color);font-size:11px;cursor:pointer;padding:3px 8px;background:#f0f4ff;border-radius:10px;" onclick="event.stopPropagation();aiCommentMoment(${idx})">💬 回复</span>
                     </div>
                 </div>
             </div>
-            ${comments ? `<div style="background:#f4f4f4;border-radius:4px;padding:8px;margin-top:8px;width:100%;">${comments}</div>` : ''}
+            ${comments ? `<div style="background:#f4f4f4;border-radius:4px;padding:8px;margin-top:8px;width:100%;cursor:pointer;" onclick="event.stopPropagation();aiCommentMoment(${idx})">${comments}<div style="font-size:11px;color:#bbb;margin-top:6px;">点击继续回复…</div></div>` : ''}
         </div>`;
     }).join('');
 }
@@ -1776,27 +1781,46 @@ function postMoment() {
     `);
 }
 
-async function aiCommentMoment(idx) {
-    if(!db.api.u || !db.api.k) { alert("请先配置API"); return; }
+function aiCommentMoment(idx) {
+    // 弹出回复输入框，让用户先输入内容
     const moment = db.mo[idx];
-    const candidates = db.c.filter(c => String(c.id) !== String(moment.uid));
-    const char = candidates.length > 0 ? candidates[Math.floor(Math.random()*candidates.length)] : db.c[0];
     const author = moment.uid === 'me' ? db.u.n : (db.c.find(x=>x.id==moment.uid)||{n:'TA'}).n;
-    try {
-        const base = db.api.u.replace(/\/chat\/completions\/?$/, '').replace(/\/$/, '');
-        const res = await fetch(`${base}/chat/completions`, {
-            method:'POST', headers:{'Content-Type':'application/json','Authorization':`Bearer ${db.api.k}`},
-            body: JSON.stringify({ model: db.api.model, messages:[
-                {role:'system', content:`你是${char.n}，性格:${char.p}。你在朋友圈看到${author}发了一条动态，请写一句简短评论，不超过20字。`},
-                {role:'user', content: moment.t || '[图片]'}
-            ]})
-        });
-        const data = await res.json();
-        const comment = parseAPIContent(data).trim();
-        if(!moment.comments) moment.comments = [];
-        moment.comments.push({ n: char.n, t: comment });
+    showModal('回复朋友圈', async () => {
+        const userText = document.getElementById('mo-reply-input').value.trim();
+        if (!userText) return;
+        // 1. 先保存用户的评论
+        if (!moment.comments) moment.comments = [];
+        moment.comments.push({ n: db.u.n || '我', t: userText, isUser: true });
         commit();
-    } catch(e) { alert(e.message); }
+        // 2. 调API让角色回复用户评论
+        if (!db.api.u || !db.api.k) return;
+        const candidates = db.c.filter(c => String(c.id) !== String(moment.uid));
+        const char = candidates.length > 0 ? candidates[Math.floor(Math.random()*candidates.length)] : db.c[0];
+        if (!char) return;
+        try {
+            const base = db.api.u.replace(/\/chat\/completions\/?$/, '').replace(/\/$/, '');
+            const existingComments = (moment.comments || []).slice(0, -1).map(c => `${c.n}：${c.t}`).join('\n');
+            const res = await fetch(`${base}/chat/completions`, {
+                method:'POST', headers:{'Content-Type':'application/json','Authorization':`Bearer ${db.api.k}`},
+                body: JSON.stringify({ model: db.api.model, messages:[
+                    {role:'system', content:`你是${char.n}，性格:${char.p}。现在你在看朋友圈。${db.u.p ? `对话中的用户"${db.u.n||'用户'}"的人设：${db.u.p}。` : ''}你在朋友圈看到${author}发了一条动态："${moment.t||'[图片]'}"${existingComments?'，评论区已有：\n'+existingComments:''}。用户"${db.u.n||'我'}"刚刚评论了："${userText}"。请以${char.n}的身份回复用户这条评论，简短自然，不超过20字，不要加任何前缀。`},
+                    {role:'user', content: userText}
+                ]})
+            });
+            const data = await res.json();
+            const comment = parseAPIContent(data).trim();
+            moment.comments.push({ n: char.n, t: comment });
+            commit();
+        } catch(e) { console.error('朋友圈AI回复失败', e); }
+    }, `
+        <div style="padding:14px 16px 6px;">
+            <div style="font-size:12px;color:#888;margin-bottom:8px;">回复 ${author} 的动态：</div>
+            <div style="font-size:13px;color:#333;background:#f4f4f4;border-radius:6px;padding:8px 10px;margin-bottom:12px;line-height:1.5;">${moment.t||'[图片]'}</div>
+            <textarea id="mo-reply-input" placeholder="写下你的评论..." style="width:100%;border:1px solid #ddd;border-radius:6px;padding:10px;font-size:14px;height:80px;resize:none;outline:none;font-family:inherit;"></textarea>
+        </div>
+    `);
+    // 自动聚焦输入框
+    setTimeout(() => { const el = document.getElementById('mo-reply-input'); if(el) el.focus(); }, 100);
 }
 
 function openStickerManager() {
