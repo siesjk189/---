@@ -974,17 +974,52 @@ if(window.visualViewport) {
 
 const isImg = (url) => (typeof url === 'string' && (url.match(/\.(jpeg|jpg|gif|png|webp|svg|ico)$/i) != null || url.startsWith('data:image')));
 
+function renderMoments() {
+    const ml = document.getElementById('moments-list'); if(!ml) return;
+    const isByMe_check = (m) => m.uid === 'me';
+    ml.innerHTML = db.mo.map((m, idx) => {
+        const isByMe = isByMe_check(m);
+        const author = isByMe ? db.u : (db.c.find(x=>x.id==m.uid) || {n:'未知', a:''});
+        const comments = (m.comments||[]).map((c, ci) => {
+            const isUserComment = c.isUser === true;
+            const nameColor = isUserComment ? '#c0607a' : 'var(--link-color)';
+            const replyLabel = isUserComment ? '角色回复' : '回复TA';
+            return `<div style="font-size:12px;color:#333;margin-top:6px;display:flex;align-items:flex-start;gap:6px;">
+                <div style="flex:1;line-height:1.6;"><b style="color:${nameColor};">${c.n}：</b>${c.t}</div>
+                <span style="color:var(--link-color);font-size:11px;cursor:pointer;white-space:nowrap;flex-shrink:0;padding:2px 8px;background:#e8eef8;border-radius:8px;min-height:24px;display:flex;align-items:center;" onclick="event.stopPropagation();replyToComment(${idx},${ci})">${replyLabel}</span>
+            </div>`;
+        }).join('');
+        return `<div style="align-items:flex-start;padding:15px;background:#fff;border-bottom:0.5px solid #eee;flex-direction:column;display:flex;">
+            <div style="display:flex;align-items:flex-start;width:100%;">
+                <img src="${author.a||''}" class="avatar">
+                <div style="flex:1;">
+                    <b style="color:var(--link-color);">${author.n||''}</b>
+                    <p style="margin-top:5px;white-space:pre-wrap;font-size:15px;line-height:1.5;">${m.t||''}</p>
+                    ${m.img?`<img src="${m.img}" style="max-width:200px;margin-top:8px;border-radius:4px;">`: ''}
+                    <div style="display:flex;gap:10px;margin-top:10px;align-items:center;flex-wrap:wrap;">
+                        <span style="color:#ccc;font-size:11px;cursor:pointer;" onclick="event.stopPropagation();db.mo.splice(${idx},1);commit();">删除</span>
+                        <span style="color:var(--link-color);font-size:12px;cursor:pointer;padding:4px 12px;background:#f0f4ff;border-radius:12px;min-height:26px;display:flex;align-items:center;" onclick="event.stopPropagation();userReplyMoment(${idx})">💬 回复</span>
+                        ${!isByMe ? `<span style="color:#666;font-size:12px;cursor:pointer;padding:4px 12px;background:#f5f5f5;border-radius:12px;min-height:26px;display:flex;align-items:center;" onclick="event.stopPropagation();charCommentMoment(${idx})">🤖 角色评论</span>` : ''}
+                    </div>
+                </div>
+            </div>
+            ${comments ? `<div style="background:#f6f6f6;border-radius:6px;padding:8px 10px;margin-top:10px;width:100%;">${comments}</div>` : ''}
+        </div>`;
+    }).join('');
+}
+
 function render() {
-    document.getElementById('me-name').innerText = db.u.n;
-    document.getElementById('me-avatar').src = db.u.a || '';
-    document.getElementById('mo-name').innerText = db.u.n;
-    document.getElementById('mo-avatar').src = db.u.a || '';
-    document.getElementById('mo-cover').style.backgroundImage = db.u.bg ? `url(${db.u.bg})` : 'none';
-    document.getElementById('api-url').value = db.api.u || '';
-    document.getElementById('api-key').value = db.api.k || '';
+    const setVal = (id, val) => { const el = document.getElementById(id); if(el) el[el.tagName==='INPUT'||el.tagName==='TEXTAREA'||el.tagName==='SELECT'?'value':'innerText'] = val; };
+    const setSrc = (id, val) => { const el = document.getElementById(id); if(el) el.src = val; };
+    const setStyle = (id, prop, val) => { const el = document.getElementById(id); if(el) el.style[prop] = val; };
+    setVal('me-name', db.u.n); setSrc('me-avatar', db.u.a||'');
+    setVal('mo-name', db.u.n); setSrc('mo-avatar', db.u.a||'');
+    setStyle('mo-cover', 'backgroundImage', db.u.bg ? `url(${db.u.bg})` : 'none');
+    const apiUrl = document.getElementById('api-url'); if(apiUrl) apiUrl.value = db.api.u||'';
+    const apiKey = document.getElementById('api-key'); if(apiKey) apiKey.value = db.api.k||'';
     
     const sel = document.getElementById('api-model');
-    if(db.api.models && db.api.models.length) {
+    if(sel && db.api.models && db.api.models.length) {
         sel.innerHTML = db.api.models.map(m => `<option value="${m}" ${m===db.api.model?'selected':''}>${m}</option>`).join('');
     }
 
@@ -1014,35 +1049,7 @@ function render() {
 
     document.getElementById('contacts-list').innerHTML = db.c.map(i => `<div class="cell" onclick="openCharEdit(${i.id})"><img src="${i.a}" class="avatar"><div>${i.n}</div></div>`).join('');
 
-    document.getElementById('moments-list').innerHTML = db.mo.map((m, idx) => {
-        const isByMe = m.uid === 'me';
-        const author = isByMe ? db.u : (db.c.find(x=>x.id==m.uid) || {n:'未知', a:''});
-        const comments = (m.comments||[]).map((c, ci) => {
-            const isUserComment = c.isUser === true;
-            const nameColor = isUserComment ? '#c0607a' : 'var(--link-color)';
-            const replyLabel = isUserComment ? '角色回复' : '回复TA';
-            return `<div style="font-size:12px;color:#333;margin-top:6px;display:flex;align-items:flex-start;gap:6px;">
-                <div style="flex:1;line-height:1.6;"><b style="color:${nameColor};">${c.n}：</b>${c.t}</div>
-                <span style="color:var(--link-color);font-size:11px;cursor:pointer;white-space:nowrap;flex-shrink:0;padding:1px 6px;background:#e8eef8;border-radius:8px;" onclick="event.stopPropagation();replyToComment(${idx},${ci})">${replyLabel}</span>
-            </div>`;
-        }).join('');
-        return `<div class="cell" style="align-items:flex-start;padding:15px;background:#fff;flex-direction:column;">
-            <div style="display:flex;align-items:flex-start;width:100%;">
-                <img src="${author.a}" class="avatar">
-                <div style="flex:1;">
-                    <b style="color:var(--link-color);">${author.n}</b>
-                    <p style="margin-top:5px;white-space:pre-wrap;">${m.t||''}</p>
-                    ${m.img?`<img src="${m.img}" style="max-width:200px;margin-top:8px;border-radius:4px;">`: ''}
-                    <div style="display:flex;gap:12px;margin-top:10px;align-items:center;flex-wrap:wrap;">
-                        <span style="color:#ccc;font-size:11px;cursor:pointer;" onclick="event.stopPropagation();db.mo.splice(${idx},1);commit();">删除</span>
-                        <span style="color:var(--link-color);font-size:11px;cursor:pointer;padding:3px 10px;background:#f0f4ff;border-radius:10px;" onclick="event.stopPropagation();userReplyMoment(${idx})">💬 回复</span>
-                        ${!isByMe ? `<span style="color:#999;font-size:11px;cursor:pointer;padding:3px 10px;background:#f5f5f5;border-radius:10px;" onclick="event.stopPropagation();charCommentMoment(${idx})">🤖 角色评论</span>` : ''}
-                    </div>
-                </div>
-            </div>
-            ${comments ? `<div style="background:#f6f6f6;border-radius:6px;padding:8px 10px;margin-top:10px;width:100%;">${comments}</div>` : ''}
-        </div>`;
-    }).join('');
+    renderMoments();
 }
 
 // --- 核心：AI 随机生成多角色朋友圈 ---
@@ -1808,7 +1815,7 @@ async function userReplyMoment(idx) {
 
         // 保存用户评论
         m.comments.push({ n: db.u.n||'我', t: userText, isUser: true });
-        commit();
+        commit(); renderMoments();
 
         // 角色发帖才调API让发帖角色回复
         if (!isByMe && authorChar && db.api.u && db.api.k) {
@@ -1901,7 +1908,7 @@ async function replyToComment(idx, commentIdx) {
             const data = await res.json();
             const reply = parseAPIContent(data).trim();
             m.comments.push({ n: char.n, t: `回复${db.u.n||'我'}：${reply}`, isUser: false });
-            commit();
+            commit(); renderMoments();
         } catch(e) { console.error('回复用户评论失败', e); }
 
     } else {
