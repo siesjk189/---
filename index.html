@@ -999,7 +999,7 @@ function renderMoments() {
                     <div style="display:flex;gap:10px;margin-top:10px;align-items:center;flex-wrap:wrap;">
                         <span style="color:#ccc;font-size:11px;cursor:pointer;" onclick="event.stopPropagation();db.mo.splice(${idx},1);commit();">删除</span>
                         <span style="color:var(--link-color);font-size:12px;cursor:pointer;padding:4px 12px;background:#f0f4ff;border-radius:12px;min-height:26px;display:flex;align-items:center;" onclick="event.stopPropagation();userReplyMoment(${idx})">💬 回复</span>
-                        ${!isByMe ? `<span style="color:#666;font-size:12px;cursor:pointer;padding:4px 12px;background:#f5f5f5;border-radius:12px;min-height:26px;display:flex;align-items:center;" onclick="event.stopPropagation();charCommentMoment(${idx})">🤖 角色评论</span>` : ''}
+                        <span style="color:#666;font-size:12px;cursor:pointer;padding:4px 12px;background:#f5f5f5;border-radius:12px;min-height:26px;display:flex;align-items:center;" onclick="event.stopPropagation();charCommentMoment(${idx})">🤖 角色评论</span>
                     </div>
                 </div>
             </div>
@@ -1785,9 +1785,37 @@ function editMe() {
 
 function postMoment() {
     let opts = `<option value="me">我</option>`+db.c.map(c=>`<option value="${c.id}">${c.n}</option>`).join('');
-    showModal('发布朋友圈', () => {
-        db.mo.unshift({ uid:document.getElementById('mo-u').value, t:document.getElementById('mo-t').value, img:document.getElementById('mo-i').value, comments:[] });
-        commit();
+    showModal('发布朋友圈', async () => {
+        const uid = document.getElementById('mo-u').value;
+        const text = document.getElementById('mo-t').value;
+        const img = document.getElementById('mo-i').value;
+        const newPost = { uid, t: text, img, comments: [] };
+        db.mo.unshift(newPost);
+        commit(); renderMoments();
+
+        // 用户自己发帖时，自动让1-2个随机角色来评论
+        if (uid === 'me' && db.c.length > 0 && db.api.u && db.api.k) {
+            const count = Math.min(db.c.length, Math.floor(Math.random() * 2) + 1);
+            const shuffled = [...db.c].sort(() => 0.5 - Math.random()).slice(0, count);
+            for (const char of shuffled) {
+                try {
+                    const base = db.api.u.replace(/\/chat\/completions\/?$/, '').replace(/\/$/, '');
+                    const existingComments = (newPost.comments||[]).map(c=>`${c.n}：${c.t}`).join('\n');
+                    const res = await fetch(`${base}/chat/completions`, {
+                        method:'POST',
+                        headers:{'Content-Type':'application/json','Authorization':`Bearer ${db.api.k}`},
+                        body: JSON.stringify({ model: db.api.model, messages:[
+                            { role:'system', content:`你是${char.n}，性格：${char.p}。${db.u.p?`用户"${db.u.n||'用户'}"的人设：${db.u.p}。`:''}你在朋友圈看到好友"${db.u.n||'我'}"刚发了一条动态："${text||'[图片]'}"。${existingComments?`评论区已有：\n${existingComments}\n`:''}请以${char.n}的身份自然地评论这条动态，简短真实，不超过20字，不加任何前缀。` },
+                            { role:'user', content: text||'[图片]' }
+                        ]})
+                    });
+                    const data = await res.json();
+                    const comment = parseAPIContent(data).trim();
+                    newPost.comments.push({ n: char.n, t: comment, isUser: false });
+                    commit(); renderMoments();
+                } catch(e) { console.error('角色自动评论失败', e); }
+            }
+        }
     }, `
         <div class="input-group"><span class="input-label">选择角色</span><select id="mo-u" class="input-item">${opts}</select></div>
         <div class="input-group"><span class="input-label">正文内容</span><textarea id="mo-t" class="input-item" style="height:80px"></textarea></div>
@@ -1817,8 +1845,30 @@ async function userReplyMoment(idx) {
         m.comments.push({ n: db.u.n||'我', t: userText, isUser: true });
         commit(); renderMoments();
 
-        // 角色发帖才调API让发帖角色回复
-        if (!isByMe && authorChar && db.api.u && db.api.k) {
+        if (!db.api.u || !db.api.k) return;
+        if (isByMe) {
+            // 用户发帖：随机一个角色来评论用户的动态
+            const pool = db.c;
+            if (!pool.length) return;
+            const char = pool[Math.floor(Math.random() * pool.length)];
+            try {
+                const base = db.api.u.replace(/\/chat\/completions\/?$/, '').replace(/\/$/, '');
+                const ctx = (m.comments||[]).map(c=>`${c.n}：${c.t}`).join('\n');
+                const res = await fetch(`${base}/chat/completions`, {
+                    method:'POST',
+                    headers:{'Content-Type':'application/json','Authorization':`Bearer ${db.api.k}`},
+                    body: JSON.stringify({ model: db.api.model, messages:[
+                        { role:'system', content:`你是${char.n}，性格：${char.p}。${db.u.p?`用户"${db.u.n||'用户'}"的人设：${db.u.p}。`:''}你在朋友圈看到好友"${db.u.n||'我'}"发了动态："${m.t||'[图片]'}"。${ctx?`评论区已有：\n${ctx}\n`:''}请以${char.n}的身份自然地评论或回复这条动态，简短，不超过20字，不加任何前缀。` },
+                        { role:'user', content: m.t||'[图片]' }
+                    ]})
+                });
+                const data = await res.json();
+                const reply = parseAPIContent(data).trim();
+                m.comments.push({ n: char.n, t: reply, isUser: false });
+                commit(); renderMoments();
+            } catch(e) { console.error('角色评论用户动态失败', e); }
+        } else if (authorChar) {
+            // 角色发帖：让发帖角色回复用户评论
             try {
                 const base = db.api.u.replace(/\/chat\/completions\/?$/, '').replace(/\/$/, '');
                 const res = await fetch(`${base}/chat/completions`, {
@@ -1832,7 +1882,7 @@ async function userReplyMoment(idx) {
                 const data = await res.json();
                 const reply = parseAPIContent(data).trim();
                 m.comments.push({ n: authorChar.n, t: reply, isUser: false });
-                commit();
+                commit(); renderMoments();
             } catch(e) { console.error('朋友圈AI回复失败', e); }
         }
     }, `
@@ -1845,14 +1895,16 @@ async function userReplyMoment(idx) {
     setTimeout(() => { const el = document.getElementById('mo-reply-input'); if(el) el.focus(); }, 100);
 }
 
-// 【🤖 角色评论】角色发帖时，让其他角色来评论这条动态
+// 【🤖 角色评论】让随机角色来评论这条动态（用户发帖/角色发帖都可用）
 async function charCommentMoment(idx) {
     if (!db.api.u || !db.api.k) { alert('请先配置API'); return; }
     const m = db.mo[idx];
-    const candidates = db.c.filter(c => String(c.id) !== String(m.uid));
-    if (!candidates.length) { alert('没有其他角色可以评论'); return; }
+    const isByMe = m.uid === 'me';
+    // 用户发帖：所有角色都可以评论；角色发帖：排除发帖角色，让其他角色评论
+    const candidates = isByMe ? db.c : db.c.filter(c => String(c.id) !== String(m.uid));
+    if (!candidates.length) { alert('没有可用角色'); return; }
     const char = candidates[Math.floor(Math.random() * candidates.length)];
-    const authorName = (db.c.find(x=>String(x.id)===String(m.uid))||{n:'TA'}).n;
+    const authorName = isByMe ? (db.u.n||'我') : (db.c.find(x=>String(x.id)===String(m.uid))||{n:'TA'}).n;
     const existingComments = (m.comments||[]).map(c=>`${c.n}：${c.t}`).join('\n');
     try {
         const base = db.api.u.replace(/\/chat\/completions\/?$/, '').replace(/\/$/, '');
@@ -1860,7 +1912,7 @@ async function charCommentMoment(idx) {
             method:'POST',
             headers:{'Content-Type':'application/json','Authorization':`Bearer ${db.api.k}`},
             body: JSON.stringify({ model: db.api.model, messages:[
-                { role:'system', content:`你是${char.n}，性格：${char.p}。你在朋友圈看到${authorName}发了动态："${m.t||'[图片]'}"。${existingComments?`评论区已有：\n${existingComments}\n`:''}请以${char.n}的身份写一条简短评论，不超过20字，不加任何前缀。` },
+                { role:'system', content:`你是${char.n}，性格：${char.p}。${db.u.p?`用户"${db.u.n||'用户'}"的人设：${db.u.p}。`:''}你在朋友圈看到${authorName}发了动态："${m.t||'[图片]'}"。${existingComments?`评论区已有：\n${existingComments}\n`:''}请以${char.n}的身份写一条简短自然的评论，不超过20字，不加任何前缀。` },
                 { role:'user', content: m.t||'[图片]' }
             ]})
         });
