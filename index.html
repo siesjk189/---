@@ -130,24 +130,7 @@
             </div>
         </div>
 
-        <!-- 朋友圈独立页面 -->
-        <div id="p-moments-inner" style="display:none; position:absolute; inset:0; background:var(--bg-color); z-index:500; flex-direction:column; overflow:hidden;">
-            <div class="nav" style="flex-shrink:0;">
-                <div class="back-btn" onclick="closeMomentsPage()">‹ 返回</div>
-                <div class="nav-title">朋友圈</div>
-                <div class="nav-action" onclick="generateAIMoments()">✨ 自动生成</div>
-            </div>
-            <div style="flex:1;overflow-y:auto;">
-                <div id="mo-cover">
-                    <div class="mo-user-info">
-                        <span id="mo-name" class="mo-u-name"></span>
-                        <img id="mo-avatar" class="mo-u-avatar">
-                    </div>
-                </div>
-                <div class="cell" onclick="postMoment()" style="justify-content:center; color:var(--link-color); font-weight:500;"> 手动发布动态</div>
-                <div id="moments-list"></div>
-            </div>
-        </div>
+
         <div id="p-me" class="page">
             <div class="cell" onclick="editMe()"><img id="me-avatar" class="avatar"><b id="me-name"></b></div>
             <div class="cell" onclick="openStickerManager()">♚表情包管理</div>
@@ -539,6 +522,25 @@
         </div>
     </div>
 
+
+    <!-- 朋友圈独立页面 — 全屏覆盖 phone-shell，和 chat-room 同级 -->
+    <div id="p-moments-inner" style="position:absolute;inset:0;background:var(--bg-color);z-index:1800;display:none;flex-direction:column;">
+        <div class="nav" style="flex-shrink:0;">
+            <div class="back-btn" onclick="closeMomentsPage()">‹ 返回</div>
+            <div class="nav-title">朋友圈</div>
+            <div class="nav-action" onclick="generateAIMoments()">✨ 自动生成</div>
+        </div>
+        <div style="flex:1;overflow-y:auto;">
+            <div id="mo-cover">
+                <div class="mo-user-info">
+                    <span id="mo-name" class="mo-u-name"></span>
+                    <img id="mo-avatar" class="mo-u-avatar">
+                </div>
+            </div>
+            <div class="cell" onclick="postMoment()" style="justify-content:center;color:var(--link-color);font-weight:500;">手动发布动态</div>
+            <div id="moments-list"></div>
+        </div>
+    </div>
     <div id="chat-room" style="position:absolute;inset:0;background:var(--bg-color);z-index:2000;display:none;flex-direction:column;">
         <div class="nav">
             <div class="back-btn" onclick="goBack()">‹ 返回</div>
@@ -1013,11 +1015,15 @@ function render() {
     document.getElementById('contacts-list').innerHTML = db.c.map(i => `<div class="cell" onclick="openCharEdit(${i.id})"><img src="${i.a}" class="avatar"><div>${i.n}</div></div>`).join('');
 
     document.getElementById('moments-list').innerHTML = db.mo.map((m, idx) => {
-        const author = (m.uid==='me') ? db.u : (db.c.find(x=>x.id==m.uid) || {n:'未知', a:''});
-        const comments = (m.comments||[]).map(c => {
-            const isUser = c.isUser || (c.n === (db.u.n||'我'));
-            return `<div style="font-size:12px;color:#333;margin-top:4px;">
-                <b style="color:${isUser?'#c0607a':'var(--link-color)'};">${c.n}：</b>${c.t}
+        const isByMe = m.uid === 'me';
+        const author = isByMe ? db.u : (db.c.find(x=>x.id==m.uid) || {n:'未知', a:''});
+        const comments = (m.comments||[]).map((c, ci) => {
+            const isUserComment = c.isUser === true;
+            const nameColor = isUserComment ? '#c0607a' : 'var(--link-color)';
+            const replyLabel = isUserComment ? '角色回复' : '回复TA';
+            return `<div style="font-size:12px;color:#333;margin-top:6px;display:flex;align-items:flex-start;gap:6px;">
+                <div style="flex:1;line-height:1.6;"><b style="color:${nameColor};">${c.n}：</b>${c.t}</div>
+                <span style="color:var(--link-color);font-size:11px;cursor:pointer;white-space:nowrap;flex-shrink:0;padding:1px 6px;background:#e8eef8;border-radius:8px;" onclick="event.stopPropagation();replyToComment(${idx},${ci})">${replyLabel}</span>
             </div>`;
         }).join('');
         return `<div class="cell" style="align-items:flex-start;padding:15px;background:#fff;flex-direction:column;">
@@ -1025,15 +1031,16 @@ function render() {
                 <img src="${author.a}" class="avatar">
                 <div style="flex:1;">
                     <b style="color:var(--link-color);">${author.n}</b>
-                    <p style="margin-top:5px;white-space:pre-wrap;">${m.t}</p>
+                    <p style="margin-top:5px;white-space:pre-wrap;">${m.t||''}</p>
                     ${m.img?`<img src="${m.img}" style="max-width:200px;margin-top:8px;border-radius:4px;">`: ''}
-                    <div style="display:flex;gap:12px;margin-top:10px;">
-                        <span style="color:red;font-size:11px;cursor:pointer;" onclick="event.stopPropagation();db.mo.splice(${idx},1);commit();">删除</span>
-                        <span style="color:var(--link-color);font-size:11px;cursor:pointer;padding:3px 8px;background:#f0f4ff;border-radius:10px;" onclick="event.stopPropagation();aiCommentMoment(${idx})">💬 回复</span>
+                    <div style="display:flex;gap:12px;margin-top:10px;align-items:center;flex-wrap:wrap;">
+                        <span style="color:#ccc;font-size:11px;cursor:pointer;" onclick="event.stopPropagation();db.mo.splice(${idx},1);commit();">删除</span>
+                        <span style="color:var(--link-color);font-size:11px;cursor:pointer;padding:3px 10px;background:#f0f4ff;border-radius:10px;" onclick="event.stopPropagation();userReplyMoment(${idx})">💬 回复</span>
+                        ${!isByMe ? `<span style="color:#999;font-size:11px;cursor:pointer;padding:3px 10px;background:#f5f5f5;border-radius:10px;" onclick="event.stopPropagation();charCommentMoment(${idx})">🤖 角色评论</span>` : ''}
                     </div>
                 </div>
             </div>
-            ${comments ? `<div style="background:#f4f4f4;border-radius:4px;padding:8px;margin-top:8px;width:100%;cursor:pointer;" onclick="event.stopPropagation();aiCommentMoment(${idx})">${comments}<div style="font-size:11px;color:#bbb;margin-top:6px;">点击继续回复…</div></div>` : ''}
+            ${comments ? `<div style="background:#f6f6f6;border-radius:6px;padding:8px 10px;margin-top:10px;width:100%;">${comments}</div>` : ''}
         </div>`;
     }).join('');
 }
@@ -1781,47 +1788,164 @@ function postMoment() {
     `);
 }
 
-function aiCommentMoment(idx) {
-    // 弹出回复输入框，让用户先输入内容
-    const moment = db.mo[idx];
-    const author = moment.uid === 'me' ? db.u.n : (db.c.find(x=>x.id==moment.uid)||{n:'TA'}).n;
-    showModal('回复朋友圈', async () => {
+// ─── 朋友圈互动函数 ───
+
+// 【💬 回复】动态下方的主回复按钮：用户输入评论
+// - 角色发帖：用户输入 → 保存用户评论 → API让发帖角色回复用户
+// - 用户发帖：用户输入 → 仅保存，不调API
+async function userReplyMoment(idx) {
+    const m = db.mo[idx];
+    const isByMe = m.uid === 'me';
+    const authorChar = isByMe ? null : db.c.find(x => String(x.id) === String(m.uid));
+    const authorName = isByMe ? (db.u.n||'我') : (authorChar ? authorChar.n : 'TA');
+
+    const existingComments = (m.comments||[]).map(c => `${c.n}：${c.t}`).join('\n');
+
+    showModal(`回复 ${authorName} 的动态`, async () => {
         const userText = document.getElementById('mo-reply-input').value.trim();
         if (!userText) return;
-        // 1. 先保存用户的评论
-        if (!moment.comments) moment.comments = [];
-        moment.comments.push({ n: db.u.n || '我', t: userText, isUser: true });
+        if (!m.comments) m.comments = [];
+
+        // 保存用户评论
+        m.comments.push({ n: db.u.n||'我', t: userText, isUser: true });
         commit();
-        // 2. 调API让角色回复用户评论
-        if (!db.api.u || !db.api.k) return;
-        const candidates = db.c.filter(c => String(c.id) !== String(moment.uid));
-        const char = candidates.length > 0 ? candidates[Math.floor(Math.random()*candidates.length)] : db.c[0];
+
+        // 角色发帖才调API让发帖角色回复
+        if (!isByMe && authorChar && db.api.u && db.api.k) {
+            try {
+                const base = db.api.u.replace(/\/chat\/completions\/?$/, '').replace(/\/$/, '');
+                const res = await fetch(`${base}/chat/completions`, {
+                    method:'POST',
+                    headers:{'Content-Type':'application/json','Authorization':`Bearer ${db.api.k}`},
+                    body: JSON.stringify({ model: db.api.model, messages:[
+                        { role:'system', content:`你是${authorChar.n}，性格：${authorChar.p}。${db.u.p?`用户"${db.u.n||'用户'}"的人设：${db.u.p}。`:''}你刚在朋友圈发了一条动态："${m.t||'[图片]'}"。${existingComments?`评论区已有：\n${existingComments}\n`:''}用户"${db.u.n||'我'}"刚评论了你："${userText}"。请以${authorChar.n}的身份回复这条评论，简短自然，不超过25字，不加任何前缀。` },
+                        { role:'user', content: userText }
+                    ]})
+                });
+                const data = await res.json();
+                const reply = parseAPIContent(data).trim();
+                m.comments.push({ n: authorChar.n, t: reply, isUser: false });
+                commit();
+            } catch(e) { console.error('朋友圈AI回复失败', e); }
+        }
+    }, `
+        <div style="padding:14px 16px 6px;">
+            <div style="font-size:12px;color:#888;margin-bottom:6px;">回复 ${authorName} 的动态：</div>
+            <div style="font-size:13px;color:#444;background:#f4f4f4;border-radius:6px;padding:8px 10px;margin-bottom:12px;line-height:1.5;max-height:80px;overflow:hidden;">${m.t||'[图片]'}</div>
+            <textarea id="mo-reply-input" placeholder="写下你的评论…" style="width:100%;border:1px solid #ddd;border-radius:6px;padding:10px;font-size:14px;height:80px;resize:none;outline:none;font-family:inherit;"></textarea>
+        </div>
+    `);
+    setTimeout(() => { const el = document.getElementById('mo-reply-input'); if(el) el.focus(); }, 100);
+}
+
+// 【🤖 角色评论】角色发帖时，让其他角色来评论这条动态
+async function charCommentMoment(idx) {
+    if (!db.api.u || !db.api.k) { alert('请先配置API'); return; }
+    const m = db.mo[idx];
+    const candidates = db.c.filter(c => String(c.id) !== String(m.uid));
+    if (!candidates.length) { alert('没有其他角色可以评论'); return; }
+    const char = candidates[Math.floor(Math.random() * candidates.length)];
+    const authorName = (db.c.find(x=>String(x.id)===String(m.uid))||{n:'TA'}).n;
+    const existingComments = (m.comments||[]).map(c=>`${c.n}：${c.t}`).join('\n');
+    try {
+        const base = db.api.u.replace(/\/chat\/completions\/?$/, '').replace(/\/$/, '');
+        const res = await fetch(`${base}/chat/completions`, {
+            method:'POST',
+            headers:{'Content-Type':'application/json','Authorization':`Bearer ${db.api.k}`},
+            body: JSON.stringify({ model: db.api.model, messages:[
+                { role:'system', content:`你是${char.n}，性格：${char.p}。你在朋友圈看到${authorName}发了动态："${m.t||'[图片]'}"。${existingComments?`评论区已有：\n${existingComments}\n`:''}请以${char.n}的身份写一条简短评论，不超过20字，不加任何前缀。` },
+                { role:'user', content: m.t||'[图片]' }
+            ]})
+        });
+        const data = await res.json();
+        const comment = parseAPIContent(data).trim();
+        if (!m.comments) m.comments = [];
+        m.comments.push({ n: char.n, t: comment, isUser: false });
+        commit();
+    } catch(e) { console.error('角色评论失败', e); }
+}
+
+// 【评论上的回复按钮】
+// - 用户评论 → "角色回复"：随机一个角色回复（角色发帖用发帖角色，用户发帖用其他角色）
+// - 角色评论 → "回复TA"：用户输入，然后API让该角色回复用户
+async function replyToComment(idx, commentIdx) {
+    const m = db.mo[idx];
+    const c = (m.comments||[])[commentIdx];
+    if (!c) return;
+    const isByMe = m.uid === 'me';
+
+    if (c.isUser) {
+        // 用户评论 → 让角色来回复
+        if (!db.api.u || !db.api.k) { alert('请先配置API'); return; }
+        // 角色发帖：发帖角色回复；用户发帖：随机角色回复
+        let char;
+        if (!isByMe) {
+            char = db.c.find(x => String(x.id) === String(m.uid));
+        }
+        if (!char) {
+            const pool = db.c.filter(x => !isByMe ? String(x.id)!==String(m.uid) : true);
+            char = pool[Math.floor(Math.random()*pool.length)];
+        }
         if (!char) return;
+        const existingComments = (m.comments||[]).map(c=>`${c.n}：${c.t}`).join('\n');
         try {
             const base = db.api.u.replace(/\/chat\/completions\/?$/, '').replace(/\/$/, '');
-            const existingComments = (moment.comments || []).slice(0, -1).map(c => `${c.n}：${c.t}`).join('\n');
             const res = await fetch(`${base}/chat/completions`, {
-                method:'POST', headers:{'Content-Type':'application/json','Authorization':`Bearer ${db.api.k}`},
+                method:'POST',
+                headers:{'Content-Type':'application/json','Authorization':`Bearer ${db.api.k}`},
                 body: JSON.stringify({ model: db.api.model, messages:[
-                    {role:'system', content:`你是${char.n}，性格:${char.p}。现在你在看朋友圈。${db.u.p ? `对话中的用户"${db.u.n||'用户'}"的人设：${db.u.p}。` : ''}你在朋友圈看到${author}发了一条动态："${moment.t||'[图片]'}"${existingComments?'，评论区已有：\n'+existingComments:''}。用户"${db.u.n||'我'}"刚刚评论了："${userText}"。请以${char.n}的身份回复用户这条评论，简短自然，不超过20字，不要加任何前缀。`},
-                    {role:'user', content: userText}
+                    { role:'system', content:`你是${char.n}，性格：${char.p}。${db.u.p?`用户"${db.u.n||'用户'}"的人设：${db.u.p}。`:''}朋友圈动态："${m.t||'[图片]'}"。评论区上下文：\n${existingComments}\n请回复"${db.u.n||'我'}"说的"${c.t}"，简短自然，不超过20字，不加任何前缀。` },
+                    { role:'user', content: c.t }
                 ]})
             });
             const data = await res.json();
-            const comment = parseAPIContent(data).trim();
-            moment.comments.push({ n: char.n, t: comment });
+            const reply = parseAPIContent(data).trim();
+            m.comments.push({ n: char.n, t: `回复${db.u.n||'我'}：${reply}`, isUser: false });
             commit();
-        } catch(e) { console.error('朋友圈AI回复失败', e); }
-    }, `
-        <div style="padding:14px 16px 6px;">
-            <div style="font-size:12px;color:#888;margin-bottom:8px;">回复 ${author} 的动态：</div>
-            <div style="font-size:13px;color:#333;background:#f4f4f4;border-radius:6px;padding:8px 10px;margin-bottom:12px;line-height:1.5;">${moment.t||'[图片]'}</div>
-            <textarea id="mo-reply-input" placeholder="写下你的评论..." style="width:100%;border:1px solid #ddd;border-radius:6px;padding:10px;font-size:14px;height:80px;resize:none;outline:none;font-family:inherit;"></textarea>
-        </div>
-    `);
-    // 自动聚焦输入框
-    setTimeout(() => { const el = document.getElementById('mo-reply-input'); if(el) el.focus(); }, 100);
+        } catch(e) { console.error('回复用户评论失败', e); }
+
+    } else {
+        // 角色评论 → 让用户输入，再让该角色回复用户
+        const charName = c.n;
+        const char = db.c.find(x => x.n === charName);
+        showModal(`回复 ${charName}`, async () => {
+            const userText = document.getElementById('mo-reply-input').value.trim();
+            if (!userText) return;
+            if (!m.comments) m.comments = [];
+            // 保存用户回复
+            m.comments.push({ n: db.u.n||'我', t: `回复${charName}：${userText}`, isUser: true });
+            commit();
+            // API让该角色回复用户
+            if (!char || !db.api.u || !db.api.k) return;
+            try {
+                const base = db.api.u.replace(/\/chat\/completions\/?$/, '').replace(/\/$/, '');
+                const existingComments = (m.comments||[]).slice(0,-1).map(c=>`${c.n}：${c.t}`).join('\n');
+                const res = await fetch(`${base}/chat/completions`, {
+                    method:'POST',
+                    headers:{'Content-Type':'application/json','Authorization':`Bearer ${db.api.k}`},
+                    body: JSON.stringify({ model: db.api.model, messages:[
+                        { role:'system', content:`你是${char.n}，性格：${char.p}。${db.u.p?`用户"${db.u.n||'用户'}"的人设：${db.u.p}。`:''}朋友圈动态："${m.t||'[图片]'}"。评论区上下文：\n${existingComments}\n用户"${db.u.n||'我'}"对你说："${userText}"，请以${char.n}的身份回复，简短自然，不超过20字，不加任何前缀。` },
+                        { role:'user', content: userText }
+                    ]})
+                });
+                const data = await res.json();
+                const reply = parseAPIContent(data).trim();
+                m.comments.push({ n: char.n, t: `回复${db.u.n||'我'}：${reply}`, isUser: false });
+                commit();
+            } catch(e) { console.error('角色回复用户失败', e); }
+        }, `
+            <div style="padding:14px 16px 6px;">
+                <div style="font-size:12px;color:#888;margin-bottom:6px;">回复 ${charName} 的评论：</div>
+                <div style="font-size:13px;color:#444;background:#f4f4f4;border-radius:6px;padding:8px 10px;margin-bottom:12px;line-height:1.5;">${c.t}</div>
+                <textarea id="mo-reply-input" placeholder="写下你的回复…" style="width:100%;border:1px solid #ddd;border-radius:6px;padding:10px;font-size:14px;height:80px;resize:none;outline:none;font-family:inherit;"></textarea>
+            </div>
+        `);
+        setTimeout(() => { const el = document.getElementById('mo-reply-input'); if(el) el.focus(); }, 100);
+    }
 }
+
+// 保留旧函数名兼容性
+function aiCommentMoment(idx) { userReplyMoment(idx); }
 
 function openStickerManager() {
     showModal('表情包管理', commit, `<button onclick="addSticker()" style="width:100%;padding:10px;">+ 添加 URL 表情</button><div id="s-list"></div>`);
