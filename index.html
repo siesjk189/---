@@ -127,6 +127,13 @@
                     </div>
                     <div style="margin-left:auto;color:#f0b8cc;font-size:20px;">›</div>
                 </div>
+                <div onclick="openAlbumPage()" style="display:flex;align-items:center;background:#fff;border-radius:12px;padding:18px 16px;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,0.08);cursor:pointer;">
+                    <div>
+                        <div style="font-weight:bold;font-size:16px;color:#333;">相册</div>
+                        <div style="font-size:12px;color:#999;margin-top:3px;">保存你喜欢的图片</div>
+                    </div>
+                    <div style="margin-left:auto;color:#ccc;font-size:20px;">›</div>
+                </div>
             </div>
         </div>
 
@@ -545,7 +552,10 @@
         <div class="nav">
             <div class="back-btn" onclick="goBack()">‹ 返回</div>
             <div id="chat-title" class="nav-title"></div>
-            <div class="more-btn" onclick="openCharEdit(curChatId)">>></div>
+            <div style="position:absolute;right:15px;display:flex;align-items:center;gap:6px;">
+                <span id="api-mode-label" onclick="switchToCardMode()" style="font-size:11px;background:#e0e0e0;color:#666;padding:2px 7px;border-radius:10px;cursor:pointer;">API</span>
+                <div onclick="openCharEdit(curChatId)" style="cursor:pointer;font-weight:bold;font-size:18px;color:#333;">>></div>
+            </div>
         </div>
         <div class="chat-msgs" id="chat-area"></div>
         <div class="input-bar" style="padding:8px 8px;">
@@ -683,9 +693,127 @@
         <div class="nav">
             <div onclick="hideModal()" style="position:absolute; left:15px; cursor:pointer;">取消</div>
             <div id="modal-head" style="font-weight:bold;"></div>
+            <div id="modal-extra-nav" style="position:absolute;right:60px;display:flex;align-items:center;gap:6px;"></div>
             <div id="modal-ok" style="position:absolute; right:15px; color:var(--wechat-green); font-weight:bold; cursor:pointer;">完成</div>
         </div>
         <div id="modal-body" style="flex:1; overflow-y:auto;"></div>
+    </div>
+
+    <!-- ═══════════════ 字卡聊天界面 ═══════════════ -->
+    <div id="card-chat-room" style="position:absolute;inset:0;background:var(--bg-color);z-index:2050;display:none;flex-direction:column;">
+        <div class="nav">
+            <div class="back-btn" onclick="closeCardChat()">‹ 返回</div>
+            <div id="card-chat-title" class="nav-title"></div>
+            <div style="position:absolute;right:15px;display:flex;align-items:center;gap:8px;">
+                <span id="card-mode-label" onclick="switchToApiMode()" style="font-size:11px;background:#07c160;color:#fff;padding:2px 7px;border-radius:10px;cursor:pointer;">字卡</span>
+                <div onclick="openCharEdit(curChatId)" style="cursor:pointer;font-weight:bold;font-size:18px;color:#333;">>></div>
+            </div>
+        </div>
+        <div class="chat-msgs" id="card-chat-area"></div>
+        <div class="input-bar" style="padding:8px 8px;">
+            <div id="card-sim-btn" class="id-toggle" style="flex-shrink:0;background:#ddd center/cover;"></div>
+            <input type="text" id="card-chat-in" placeholder="输入消息..." onkeydown="if(event.key==='Enter') handleCardSend()" style="flex:1;min-width:0;border:0.5px solid #ddd;height:34px;border-radius:4px;padding:0 8px;font-size:14px;outline:none;">
+            <button onclick="handleCardSend()" style="border:none;background:var(--wechat-green);color:white;padding:0 10px;border-radius:4px;height:32px;flex-shrink:0;white-space:nowrap;font-size:14px;">发送</button>
+        </div>
+    </div>
+
+    <!-- ═══════════════ 字卡管理面板 ═══════════════ -->
+    <div id="card-manager-panel" style="position:absolute;inset:0;background:#f5f5f5;z-index:3600;display:none;flex-direction:column;">
+        <div class="nav" style="background:#fff;">
+            <div class="back-btn" onclick="closeCardManager()">‹ 返回</div>
+            <div class="nav-title">字卡词库</div>
+        </div>
+        <!-- 字卡行为设置区 -->
+        <div id="card-settings-area" style="background:#fff;border-bottom:0.5px solid #eee;padding:10px 14px;flex-shrink:0;">
+            <div style="font-size:12px;color:#888;margin-bottom:8px;font-weight:500;">⚙️ 回复设置</div>
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;flex-wrap:wrap;">
+                <span style="font-size:12px;color:#555;white-space:nowrap;">回复延迟：</span>
+                <input id="card-delay-min" type="number" min="0" step="0.5" style="width:50px;height:28px;text-align:center;border:1px solid #ddd;border-radius:6px;font-size:13px;" placeholder="0.5">
+                <span style="font-size:12px;color:#888;">秒 ~</span>
+                <input id="card-delay-max" type="number" min="0" step="0.5" style="width:50px;height:28px;text-align:center;border:1px solid #ddd;border-radius:6px;font-size:13px;" placeholder="2">
+                <span style="font-size:12px;color:#888;">秒</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;flex-wrap:wrap;">
+                <span style="font-size:12px;color:#555;white-space:nowrap;">回复条数：</span>
+                <input id="card-count-min" type="number" min="1" max="10" style="width:50px;height:28px;text-align:center;border:1px solid #ddd;border-radius:6px;font-size:13px;" placeholder="1">
+                <span style="font-size:12px;color:#888;">条 ~</span>
+                <input id="card-count-max" type="number" min="1" max="10" style="width:50px;height:28px;text-align:center;border:1px solid #ddd;border-radius:6px;font-size:13px;" placeholder="1">
+                <span style="font-size:12px;color:#888;">条</span>
+            </div>
+            <div style="border-top:0.5px solid #f0f0f0;padding-top:8px;">
+                <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
+                    <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:#555;cursor:pointer;">
+                        <input type="checkbox" id="card-auto-on" onchange="saveCardSettings()"> 开启主动发消息
+                    </label>
+                </div>
+                <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                    <span style="font-size:12px;color:#888;white-space:nowrap;">间隔：</span>
+                    <input id="card-auto-min" type="number" min="1" style="width:55px;height:28px;text-align:center;border:1px solid #ddd;border-radius:6px;font-size:13px;" placeholder="10">
+                    <span style="font-size:12px;color:#888;">~</span>
+                    <input id="card-auto-max" type="number" min="1" style="width:55px;height:28px;text-align:center;border:1px solid #ddd;border-radius:6px;font-size:13px;" placeholder="60">
+                    <span style="font-size:12px;color:#888;">分钟</span>
+                    <button onclick="saveCardSettings()" style="padding:4px 12px;background:var(--wechat-green);color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer;">保存</button>
+                </div>
+            </div>
+        </div>
+        <div style="display:flex;gap:8px;padding:10px 12px;background:#fff;border-bottom:0.5px solid #eee;flex-shrink:0;flex-wrap:wrap;">
+            <button onclick="openAddCardDialog()" style="flex:1;padding:8px 0;background:var(--wechat-green);color:#fff;border:none;border-radius:8px;font-size:13px;cursor:pointer;">＋ 添加</button>
+            <button onclick="importCards()" style="flex:1;padding:8px 0;background:#f0f0f0;border:1px solid #ccc;border-radius:8px;font-size:13px;cursor:pointer;">导入</button>
+            <button onclick="exportCards()" style="flex:1;padding:8px 0;background:#f0f0f0;border:1px solid #ccc;border-radius:8px;font-size:13px;cursor:pointer;">导出</button>
+            <button id="card-multi-btn" onclick="toggleCardMultiSelect()" style="flex:1;padding:8px 0;background:#f0f0f0;border:1px solid #ccc;border-radius:8px;font-size:13px;cursor:pointer;">多选</button>
+        </div>
+        <div id="card-multi-bar" style="display:none;padding:8px 12px;background:#fff5f0;border-bottom:0.5px solid #eee;flex-shrink:0;display:none;align-items:center;gap:8px;">
+            <span id="card-selected-count" style="font-size:13px;color:#666;flex:1;">已选 0 项</span>
+            <button onclick="deleteSelectedCards()" style="padding:6px 14px;background:#ff4444;color:#fff;border:none;border-radius:6px;font-size:13px;cursor:pointer;">删除所选</button>
+            <button onclick="toggleCardMultiSelect()" style="padding:6px 14px;background:#f0f0f0;border:1px solid #ccc;border-radius:6px;font-size:13px;cursor:pointer;">取消</button>
+        </div>
+        <div id="card-list-area" style="flex:1;overflow-y:auto;padding:10px 12px;"></div>
+        <!-- 添加字卡弹窗 -->
+        <div id="add-card-dialog" style="position:absolute;inset:0;background:rgba(0,0,0,0.5);z-index:100;display:none;align-items:flex-end;justify-content:center;">
+            <div style="background:#fff;border-radius:16px 16px 0 0;width:100%;padding:16px;">
+                <div style="font-weight:bold;font-size:15px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;">
+                    <span>添加字卡</span>
+                    <span onclick="closeAddCardDialog()" style="color:#999;cursor:pointer;font-size:22px;">×</span>
+                </div>
+                <div style="font-size:12px;color:#888;margin-bottom:6px;">每行一个词条，可一次添加多个</div>
+                <textarea id="add-card-input" placeholder="输入词条内容&#10;每行一个&#10;如：&#10;好呀~&#10;嗯嗯！&#10;哈哈哈" style="width:100%;height:140px;border:1px solid #ddd;border-radius:8px;padding:10px;font-size:14px;resize:none;outline:none;font-family:inherit;line-height:1.6;"></textarea>
+                <div style="display:flex;gap:8px;margin-top:10px;">
+                    <button onclick="closeAddCardDialog()" style="flex:1;padding:10px;background:#f0f0f0;border:1px solid #ccc;border-radius:8px;font-size:14px;cursor:pointer;">取消</button>
+                    <button onclick="confirmAddCards()" style="flex:1;padding:10px;background:var(--wechat-green);color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer;font-weight:bold;">确定添加</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════ 拍一拍管理面板 ═══════════════ -->
+    <div id="poke-manager-panel" style="position:absolute;inset:0;background:#f5f5f5;z-index:3600;display:none;flex-direction:column;">
+        <div class="nav" style="background:#fff;">
+            <div class="back-btn" onclick="closePokeManager()">‹ 返回</div>
+            <div class="nav-title">拍一拍词库</div>
+        </div>
+        <div style="padding:12px;background:#fff;border-bottom:0.5px solid #eee;flex-shrink:0;">
+            <div style="font-size:12px;color:#888;margin-bottom:8px;">双击聊天中角色的头像可触发拍一拍，随机从词库中抽取一条回复。</div>
+            <div style="display:flex;gap:8px;">
+                <button onclick="addPokeWord()" style="flex:1;padding:8px 0;background:var(--wechat-green);color:#fff;border:none;border-radius:8px;font-size:13px;cursor:pointer;">＋ 添加词条</button>
+            </div>
+        </div>
+        <div id="poke-list-area" style="flex:1;overflow-y:auto;padding:10px 12px;"></div>
+    </div>
+
+    <!-- ═══════════════ 相册页面 ═══════════════ -->
+    <div id="album-room" style="position:absolute;inset:0;background:#f5f5f5;z-index:1500;display:none;flex-direction:column;">
+        <div class="nav" style="background:#fff;">
+            <div class="back-btn" onclick="closeAlbumPage()">‹ 返回</div>
+            <div class="nav-title">相册</div>
+            <div onclick="openAddAlbumPhoto()" style="position:absolute;right:15px;font-size:24px;color:var(--wechat-green);cursor:pointer;line-height:48px;">＋</div>
+        </div>
+        <div id="album-grid" style="flex:1;overflow-y:auto;display:grid;grid-template-columns:repeat(3,1fr);gap:2px;padding:2px;"></div>
+    </div>
+
+    <!-- 相册查看大图 -->
+    <div id="album-viewer" style="position:absolute;inset:0;background:#000;z-index:4000;display:none;flex-direction:column;align-items:center;justify-content:center;">
+        <div onclick="closeAlbumViewer()" style="position:absolute;top:14px;right:16px;color:#fff;font-size:28px;cursor:pointer;z-index:10;">×</div>
+        <img id="album-viewer-img" src="" style="max-width:100%;max-height:100%;object-fit:contain;" draggable="false">
     </div>
 
 </div>
@@ -855,6 +983,8 @@ let db = JSON.parse(localStorage.getItem(DB_KEY)) || (() => {
         u: { n:'用户', a:'', p:'', bg:'', css:'' },
         c: DEFAULT_CHARS.map(c => ({...c})),
         m: defaultM,
+        cardM: {},
+        album: [],
         mo: [], w: DEFAULT_WORLD.map(w => ({...w})), s: [],
         api: { u:'', k:'', model:'' },
         g_css: '', timeAware: false, notifyOn: false, innerStateOn: false,
@@ -864,6 +994,17 @@ let db = JSON.parse(localStorage.getItem(DB_KEY)) || (() => {
 })();
 if (!db.groups) db.groups = [];
 if (!db.gm) db.gm = {};
+if (!db.cardM) db.cardM = {};
+if (!db.album) db.album = [];
+
+// 启动字卡主动消息定时器（仅字卡模式且开启了主动消息的角色）
+setTimeout(() => {
+    db.c.forEach(c => {
+        if (c.cardMode && c.cardSettings && c.cardSettings.autoOn) {
+            resetCardAutoTimer(c.id);
+        }
+    });
+}, 500);
 
 let curGroupId = null;
 let groupSimCharIndex = -1;
@@ -1035,8 +1176,16 @@ function render() {
     }).join('');
     const indivCells = db.c.map(i => {
         const h = db.m[i.id] || [];
-        const last = h.length > 0 ? h[h.length-1].c : '[暂无对话]';
-        return `<div class="cell" onclick="startChat(${i.id})"><img src="${i.a}" class="avatar"><div><b>${i.n}</b><p style="font-size:12px;color:#888;">${isImg(last)?'[表情]':last.substring(0,20)}</p></div></div>`;
+        const cardH = db.cardM ? (db.cardM[i.id] || []) : [];
+        const isCard = !!i.cardMode;
+        const lastMsg = isCard ? (cardH.length > 0 ? cardH[cardH.length-1].c : '[暂无对话]') : (h.length > 0 ? h[h.length-1].c : '[暂无对话]');
+        return `<div class="cell" onclick="startChat(${i.id})" style="align-items:center;">
+            <img src="${i.a}" class="avatar">
+            <div style="flex:1;min-width:0;">
+                <div style="display:flex;align-items:center;">${i.n}</div>
+                <p style="font-size:12px;color:#888;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${isImg(lastMsg)?'[图片]':lastMsg.substring(0,20)}</p>
+            </div>
+        </div>`;
     }).join('');
     document.getElementById('p-msg').innerHTML = groupCells+indivCells;
 
@@ -1135,12 +1284,17 @@ function startChat(id) {
     isSimMode = false;
     if(!db.m[id]) db.m[id] = [];
     const char = db.c.find(x => x.id === id);
-    document.getElementById('chat-title').innerText = char.n;
-    const chatRoom = document.getElementById('chat-room');
-    chatRoom.style.display = 'flex';
-    chatRoom.style.backgroundImage = char.bg ? `url(${char.bg})` : 'none';
-    renderChat();
-    updateSimUI();
+    // 判断是否字卡模式
+    if (char && char.cardMode) {
+        openCardChatRoom(id);
+    } else {
+        document.getElementById('chat-title').innerText = char.n;
+        const chatRoom = document.getElementById('chat-room');
+        chatRoom.style.display = 'flex';
+        chatRoom.style.backgroundImage = char.bg ? `url(${char.bg})` : 'none';
+        renderChat();
+        updateSimUI();
+    }
 }
 
 function showTyping(char) {
@@ -1393,21 +1547,29 @@ function triggerMyPoke() {
     _fetchAIWithExtra(curChatId, `[系统] 用户戳了戳自己（戳一戳文案：${pokeTxt}），请配合这个动作做出符合人设的简短自然回应。`);
 }
 
-// 用户双击角色头像：用户戳了角色，显示系统提示并调用API
+// 用户双击角色头像：用户戳了角色，显示系统提示并从词库随机回复
 function triggerCharPoke(charId) {
     const char = db.c.find(x => x.id == charId);
     if (!char) return;
-    if (!char.poke) {
-        showPokeToast(`${char.n}还没有设置戳一戳哦`);
+    const words = char.pokeWords && char.pokeWords.length > 0 ? char.pokeWords : (char.poke ? [char.poke] : []);
+    if (!words.length) {
+        showPokeToast(`${char.n}还没有设置拍一拍词库哦`);
         return;
     }
-    const pokeTxt = char.poke;
-    // 显示系统提示：你戳了戳'角色名'，文案
-    const pokeMsg = `你戳了戳「${char.n}」，${pokeTxt}`;
+    const pokeTxt = words[Math.floor(Math.random() * words.length)];
+    // 显示拍一拍消息
+    const pokeMsg = `你拍了拍「${char.n}」`;
     db.m[charId].push({ r: 'poke', c: pokeMsg, t: Date.now() });
+    // 随机概率（约40%）让角色回拍用户
+    if (Math.random() < 0.4) {
+        setTimeout(() => {
+            const backMsg = `「${char.n}」拍了拍你，${pokeTxt}`;
+            db.m[charId].push({ r: 'poke', c: backMsg, t: Date.now() });
+            commit();
+            if (curChatId == charId) renderChat();
+        }, 600 + Math.random() * 600);
+    }
     commit(); renderChat();
-    // 调用API让角色回应被戳
-    _fetchAIWithExtra(charId, `[系统] 用户用戳一戳戳了你（戳一戳文案：${pokeTxt}），请配合这个戳一戳文案做出符合人设的简短自然回应，不超过15字。`);
 }
 
 // 应用角色戳一戳（角色资料页"应用"按钮）
@@ -1586,6 +1748,9 @@ async function aiGenInnerState(charId) {
 function openCharEdit(id = null) {
     const isE = id !== null;
     const char = isE ? db.c.find(x=>x.id===id) : { n:'', a:'', p:'', bg:'', css:'', innerState:'', autoOn:false, minT:10, maxT:60, autoSummary:false, summaryCount:20, summaryMinLen:100, summaryMaxLen:300, memory:'' };
+    const extraNav = isE ? `
+        <button onclick="toggleCharSettingsMode(${id})" id="char-settings-toggle-${id}" style="font-size:11px;padding:3px 8px;border:1px solid #07c160;color:#07c160;background:#fff;border-radius:10px;cursor:pointer;white-space:nowrap;">${char.cardMode ? '字卡模式' : 'API模式'}</button>
+    ` : '';
     showModal(isE?'资料设置':'添加角色', () => {
         const data = {
             id: isE ? id : Date.now(),
@@ -1594,24 +1759,39 @@ function openCharEdit(id = null) {
             p: document.getElementById('i-p').value,
             bg: document.getElementById('i-bg').value,
             css: document.getElementById('i-css').value,
-            autoOn: document.getElementById('i-auto').checked,
-            autoSummary: document.getElementById('i-autoSummary').checked,
-            summaryCount: parseInt(document.getElementById('i-summaryCount').value) || 20,
-            summaryMinLen: parseInt(document.getElementById('i-summaryMinLen').value) || 100,
-            summaryMaxLen: parseInt(document.getElementById('i-summaryMaxLen').value) || 300,
-            memory: document.getElementById('i-memory').value,
-            innerState: document.getElementById('i-innerState').value,
-            minT: parseInt(document.getElementById('i-min').value),
-            maxT: parseInt(document.getElementById('i-max').value),
-            poke: document.getElementById('i-poke') ? document.getElementById('i-poke').value : (char.poke || '')
+            autoOn: document.getElementById('i-auto') ? document.getElementById('i-auto').checked : (char.autoOn || false),
+            autoSummary: document.getElementById('i-autoSummary') ? document.getElementById('i-autoSummary').checked : (char.autoSummary || false),
+            summaryCount: parseInt(document.getElementById('i-summaryCount') ? document.getElementById('i-summaryCount').value : char.summaryCount) || 20,
+            summaryMinLen: parseInt(document.getElementById('i-summaryMinLen') ? document.getElementById('i-summaryMinLen').value : char.summaryMinLen) || 100,
+            summaryMaxLen: parseInt(document.getElementById('i-summaryMaxLen') ? document.getElementById('i-summaryMaxLen').value : char.summaryMaxLen) || 300,
+            memory: document.getElementById('i-memory') ? document.getElementById('i-memory').value : (char.memory || ''),
+            innerState: document.getElementById('i-innerState') ? document.getElementById('i-innerState').value : (char.innerState || ''),
+            minT: parseInt(document.getElementById('i-min') ? document.getElementById('i-min').value : char.minT),
+            maxT: parseInt(document.getElementById('i-max') ? document.getElementById('i-max').value : char.maxT),
+            poke: document.getElementById('i-poke') ? document.getElementById('i-poke').value : (char.poke || ''),
+            pokeWords: char.pokeWords || [],
+            cardWords: char.cardWords || [],
         };
-        if(isE) db.c = db.c.map(x=>x.id===id?data:x); else { db.c.push(data); db.m[data.id]=[]; }
+        if(isE) db.c = db.c.map(x=>x.id===id?{...x,...data}:x); else { db.c.push(data); db.m[data.id]=[]; }
         commit(); if(data.autoOn) resetTimer(data.id);
     }, `
         <div class="input-group"><span class="input-label">昵称</span><select id="i-n" class="input-item" style="padding:4px 0;font-size:15px;border:none;outline:none;background:transparent;width:100%;">
             ${['秦梧','骆云影','佟小雨','白虎','朱雀','玄武','青龙','琥珀','秦叶咏','汤嘉维'].map(name=>`<option value="${name}" ${char.n===name?'selected':''}>${name}</option>`).join('')}
         </select></div>
         <div class="input-group"><span class="input-label">头像 URL</span><input id="i-a" class="input-item" value="${char.a}"></div>
+        ${isE && char.cardMode ? `
+        <!-- 字卡模式：只显示词库/拍一拍/删除聊天记录 -->
+        <div class="input-group"><span class="input-label">设定</span><textarea id="i-p" class="input-item" style="height:60px">${char.p}</textarea></div>
+        <div style="padding:12px 15px;">
+            <button onclick="openCardManager(${id});hideModal();" style="width:100%;padding:12px 0;background:#07c160;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer;margin-bottom:10px;">📋 字卡词库管理</button>
+            <button onclick="openPokeManager(${id});hideModal();" style="width:100%;padding:12px 0;background:#f0f0f0;border:1px solid #ddd;border-radius:8px;font-size:14px;cursor:pointer;color:#333;">👈 拍一拍词库管理</button>
+        </div>
+        ${isE ? `
+            <p onclick="clearCardHistory(${id})" style="color:#888;text-align:center;padding:10px 15px;cursor:pointer;">清空字卡聊天记录</p>
+            <p onclick="deleteChar(${id})" style="color:red;text-align:center;padding:10px 15px 15px;cursor:pointer;">删除角色</p>
+        ` : ''}
+        ` : `
+        <!-- API模式：显示完整设置 -->
         <div class="input-group"><span class="input-label">设定</span><textarea id="i-p" class="input-item" style="height:60px">${char.p}</textarea></div>
         <div class="input-group"><span class="input-label">背景图 URL</span><input id="i-bg" class="input-item" value="${char.bg||''}"></div>
         <div class="input-group">
@@ -1653,7 +1833,7 @@ function openCharEdit(id = null) {
 
         <div class="input-group"><span class="input-label">主动消息</span><label><input type="checkbox" id="i-auto" ${char.autoOn?'checked':''}> 开启</label> 分钟: <input id="i-min" type="number" style="width:40px" value="${char.minT}">-<input id="i-max" type="number" style="width:40px" value="${char.maxT}"></div>
         <div class="input-group">
-            <span class="input-label">🫵 角色的戳一戳文案</span>
+            <span class="input-label">🫵 角色的戳一拍文案</span>
             <div style="display:flex;gap:8px;align-items:center;">
                 <input id="i-poke" class="input-item" placeholder="如：轻轻地戳了你一下" value="${char.poke||''}">
                 <button onclick="applyCharPoke(${isE?id:'null'})" style="flex-shrink:0;height:32px;padding:0 10px;border:none;background:var(--wechat-green);color:#fff;border-radius:4px;font-size:12px;cursor:pointer;white-space:nowrap;">应用</button>
@@ -1661,10 +1841,22 @@ function openCharEdit(id = null) {
             <span style="font-size:11px;color:#bbb;margin-top:3px;display:block;">应用后将发起对话让角色决定是否同意</span>
         </div>
         ${isE ? `
-            <p onclick="clearChatHistory(${id})" style="color:orange;text-align:center;padding:15px 15px 5px;cursor:pointer;font-weight:bold;">清空当前聊天记录</p>
+            <p onclick="clearChatHistory(${id})" style="color:orange;text-align:center;padding:15px 15px 5px;cursor:pointer;font-weight:bold;">清空 AI 聊天记录</p>
+            <p onclick="clearCardHistory(${id})" style="color:#888;text-align:center;padding:5px 15px 5px;cursor:pointer;">清空字卡聊天记录</p>
             <p onclick="deleteChar(${id})" style="color:red;text-align:center;padding:10px 15px 15px;cursor:pointer;">删除角色</p>
         ` : ''}
-    `);
+        `}
+    `, extraNav);
+}
+
+// 切换角色设置页的模式（字卡/API），刷新弹窗内容
+function toggleCharSettingsMode(id) {
+    const char = db.c.find(x => x.id == id);
+    if (!char) return;
+    char.cardMode = !char.cardMode;
+    commit();
+    hideModal();
+    openCharEdit(id);
 }
 
 // 自动触发的总结（无 event，静默追加到记忆区）
@@ -1758,9 +1950,491 @@ function clearChatHistory(id) {
         if(db.apiCallCount) db.apiCallCount[id] = 0;
         commit();
         if(curChatId == id) renderChat();
-    }, '<p style="padding:30px 20px;text-align:center;font-size:15px;color:#333;">确定要清空聊天记录吗？<br><span style="color:#999;font-size:13px;margin-top:8px;display:block;">删除后无法恢复</span></p>');
+    }, '<p style="padding:30px 20px;text-align:center;font-size:15px;color:#333;">确定要清空 AI 聊天记录吗？<br><span style="color:#999;font-size:13px;margin-top:8px;display:block;">删除后无法恢复</span></p>');
 }
-function deleteChar(id) { if(confirm('确定删除吗？')) { db.c=db.c.filter(x=>x.id!=id); delete db.m[id]; db.mo=db.mo.filter(m=>m.uid!=id); commit(); hideModal(); goBack(); } }
+function clearCardHistory(id) {
+    if (!confirm('确定要清空字卡聊天记录吗？')) return;
+    if (!db.cardM) db.cardM = {};
+    db.cardM[id] = [];
+    commit();
+    if (curChatId == id) renderCardChat();
+}
+function deleteChar(id) { if(confirm('确定删除吗？')) { db.c=db.c.filter(x=>x.id!=id); delete db.m[id]; delete db.cardM[id]; db.mo=db.mo.filter(m=>m.uid!=id); commit(); hideModal(); goBack(); } }
+
+// ════════════════════════════════════════════════
+// 字卡聊天系统
+// ════════════════════════════════════════════════
+let cardMultiSelectMode = false;
+let cardSelectedIds = new Set();
+let currentCardManagerId = null;
+let currentPokeManagerId = null;
+
+function openCardChatRoom(id) {
+    curChatId = id;
+    if (!db.cardM) db.cardM = {};
+    if (!db.cardM[id]) db.cardM[id] = [];
+    const char = db.c.find(x => x.id === id);
+    document.getElementById('card-chat-title').innerText = char.n;
+    const room = document.getElementById('card-chat-room');
+    room.style.display = 'flex';
+    room.style.backgroundImage = char.bg ? `url(${char.bg})` : 'none';
+    // 更新模拟头像按钮
+    const simBtn = document.getElementById('card-sim-btn');
+    simBtn.style.backgroundImage = `url(${db.u.a||''})`;
+    renderCardChat();
+    // 确保主动消息定时器在运行
+    resetCardAutoTimer(id);
+}
+
+function closeCardChat() {
+    document.getElementById('card-chat-room').style.display = 'none';
+    curChatId = null;
+    render();
+}
+
+function renderCardChat() {
+    const area = document.getElementById('card-chat-area');
+    if (!area) return;
+    const char = db.c.find(x => x.id == curChatId);
+    if (!char) return;
+    if (!db.cardM) db.cardM = {};
+    const msgs = db.cardM[curChatId] || [];
+    area.innerHTML = msgs.map((msg, i) => {
+        const content = isImg(msg.c) ? `<img src="${msg.c}">` : msg.c;
+        if (msg.r === 'system') {
+            return `<div style="text-align:center;margin:6px 0;"><span style="font-size:11px;color:#999;background:rgba(0,0,0,0.06);padding:3px 10px;border-radius:10px;">${msg.c}</span></div>`;
+        } else if (msg.r === 'poke') {
+            return `<div style="text-align:center;margin:8px 0;"><span style="font-size:12px;color:#888;background:rgba(0,0,0,0.05);padding:4px 14px;border-radius:12px;">👈 ${msg.c}</span></div>`;
+        } else if (msg.r === 'user') {
+            return `<div class="msg user"><img src="${db.u.a}" class="avatar" style="margin:0" ondblclick="triggerMyPokeCard()" title="双击拍一拍"><div class="bubble">${content}</div></div>`;
+        } else {
+            return `<div class="msg ai char-msg-${char.id}"><img src="${char.a}" class="avatar" style="margin:0" ondblclick="triggerCharPokeCard(${char.id})" title="双击拍一拍"><div class="bubble">${content}</div></div>`;
+        }
+    }).join('');
+    area.scrollTop = area.scrollHeight;
+}
+
+function handleCardSend() {
+    const input = document.getElementById('card-chat-in');
+    const val = input.value.trim();
+    if (!val) {
+        // 空发 → 触发字卡随机回复
+        triggerCardReply();
+        return;
+    }
+    if (!db.cardM) db.cardM = {};
+    if (!db.cardM[curChatId]) db.cardM[curChatId] = [];
+    db.cardM[curChatId].push({ r: 'user', c: val, t: Date.now() });
+    input.value = '';
+    renderCardChat();
+    commit();
+    // 发送后触发字卡回复（使用延迟设置）
+    const char = db.c.find(x => x.id == curChatId);
+    const s = char && char.cardSettings ? char.cardSettings : {};
+    const delayMin = (s.delayMin !== undefined ? s.delayMin : 0.5) * 1000;
+    const delayMax = (s.delayMax !== undefined ? s.delayMax : 2) * 1000;
+    const delay = Math.floor(Math.random() * (delayMax - delayMin + 1)) + delayMin;
+    setTimeout(() => triggerCardReply(), Math.max(100, delay));
+}
+
+async function triggerCardReply() {
+    const char = db.c.find(x => x.id == curChatId);
+    if (!char) return;
+    const words = char.cardWords || [];
+    if (!words.length) {
+        showPokeToast('词库为空，请先在字卡管理中添加词条');
+        return;
+    }
+    const s = char.cardSettings || {};
+    const countMin = Math.max(1, s.countMin || 1);
+    const countMax = Math.max(countMin, s.countMax || 1);
+    const count = Math.floor(Math.random() * (countMax - countMin + 1)) + countMin;
+    const delayMin = (s.delayMin !== undefined ? s.delayMin : 0.5) * 1000;
+    const delayMax = (s.delayMax !== undefined ? s.delayMax : 2) * 1000;
+
+    if (!db.cardM) db.cardM = {};
+    if (!db.cardM[curChatId]) db.cardM[curChatId] = [];
+
+    // 发送多条，每条之间加间隔
+    for (let i = 0; i < count; i++) {
+        if (i > 0) {
+            const gap = Math.floor(Math.random() * (delayMax - delayMin + 1)) + delayMin;
+            await new Promise(r => setTimeout(r, Math.max(300, gap)));
+        }
+        const reply = words[Math.floor(Math.random() * words.length)];
+        if (!db.cardM[curChatId]) db.cardM[curChatId] = [];
+        db.cardM[curChatId].push({ r: 'ai', c: reply, t: Date.now() });
+        commit();
+        if (curChatId == char.id) renderCardChat();
+    }
+}
+
+function triggerMyPokeCard() {
+    if (!curChatId) return;
+    const pokeMsg = `你拍了拍自己`;
+    if (!db.cardM) db.cardM = {};
+    db.cardM[curChatId].push({ r: 'poke', c: pokeMsg, t: Date.now() });
+    commit(); renderCardChat();
+}
+
+function triggerCharPokeCard(charId) {
+    const char = db.c.find(x => x.id == charId);
+    if (!char) return;
+    const words = char.pokeWords && char.pokeWords.length > 0 ? char.pokeWords : [];
+    const pokeMsg = `你拍了拍「${char.n}」`;
+    if (!db.cardM) db.cardM = {};
+    db.cardM[charId].push({ r: 'poke', c: pokeMsg, t: Date.now() });
+    if (words.length && Math.random() < 0.4) {
+        const txt = words[Math.floor(Math.random() * words.length)];
+        setTimeout(() => {
+            db.cardM[charId].push({ r: 'poke', c: `「${char.n}」拍了拍你，${txt}`, t: Date.now() });
+            commit(); renderCardChat();
+        }, 500 + Math.random() * 500);
+    }
+    commit(); renderCardChat();
+}
+
+// ── 字卡管理器 ──
+let cardAutoTimers = {}; // { charId: timeoutId }
+
+function openCardManager(charId) {
+    currentCardManagerId = charId;
+    cardMultiSelectMode = false;
+    cardSelectedIds = new Set();
+    document.getElementById('card-manager-panel').style.display = 'flex';
+    loadCardSettings(charId);
+    renderCardList();
+}
+
+function loadCardSettings(charId) {
+    const char = db.c.find(x => x.id == charId);
+    if (!char) return;
+    const s = char.cardSettings || {};
+    document.getElementById('card-delay-min').value = s.delayMin !== undefined ? s.delayMin : 0.5;
+    document.getElementById('card-delay-max').value = s.delayMax !== undefined ? s.delayMax : 2;
+    document.getElementById('card-count-min').value = s.countMin !== undefined ? s.countMin : 1;
+    document.getElementById('card-count-max').value = s.countMax !== undefined ? s.countMax : 1;
+    document.getElementById('card-auto-on').checked = !!s.autoOn;
+    document.getElementById('card-auto-min').value = s.autoMin !== undefined ? s.autoMin : 10;
+    document.getElementById('card-auto-max').value = s.autoMax !== undefined ? s.autoMax : 60;
+}
+
+function saveCardSettings() {
+    const char = db.c.find(x => x.id == currentCardManagerId);
+    if (!char) return;
+    const delayMin = parseFloat(document.getElementById('card-delay-min').value) || 0.5;
+    const delayMax = parseFloat(document.getElementById('card-delay-max').value) || 2;
+    const countMin = parseInt(document.getElementById('card-count-min').value) || 1;
+    const countMax = parseInt(document.getElementById('card-count-max').value) || 1;
+    const autoOn = document.getElementById('card-auto-on').checked;
+    const autoMin = parseInt(document.getElementById('card-auto-min').value) || 10;
+    const autoMax = parseInt(document.getElementById('card-auto-max').value) || 60;
+    char.cardSettings = {
+        delayMin: Math.max(0, delayMin),
+        delayMax: Math.max(delayMin, delayMax),
+        countMin: Math.max(1, countMin),
+        countMax: Math.max(countMin, countMax),
+        autoOn, autoMin, autoMax
+    };
+    commit();
+    resetCardAutoTimer(char.id);
+    showPokeToast('设置已保存 ✓');
+}
+
+function closeCardManager() {
+    document.getElementById('card-manager-panel').style.display = 'none';
+    currentCardManagerId = null;
+}
+
+// 字卡主动消息定时器
+function resetCardAutoTimer(charId) {
+    if (cardAutoTimers[charId]) clearTimeout(cardAutoTimers[charId]);
+    const char = db.c.find(x => x.id == charId);
+    if (!char || !char.cardMode) return;
+    const s = char.cardSettings || {};
+    if (!s.autoOn) return;
+    const minMs = (s.autoMin || 10) * 60000;
+    const maxMs = (s.autoMax || 60) * 60000;
+    const delay = Math.floor(Math.random() * (maxMs - minMs + 1)) + minMs;
+    cardAutoTimers[charId] = setTimeout(() => {
+        sendCardAutoMessage(charId);
+    }, delay);
+}
+
+function sendCardAutoMessage(charId) {
+    const char = db.c.find(x => x.id == charId);
+    if (!char || !char.cardMode) return;
+    const words = char.cardWords || [];
+    if (!words.length) { resetCardAutoTimer(charId); return; }
+    if (!db.cardM) db.cardM = {};
+    if (!db.cardM[charId]) db.cardM[charId] = [];
+    // 随机一条词条主动发出
+    const reply = words[Math.floor(Math.random() * words.length)];
+    db.cardM[charId].push({ r: 'ai', c: reply, t: Date.now() });
+    commit();
+    if (curChatId == charId) renderCardChat();
+    // 通知
+    if (db.notifyOn && "Notification" in window && Notification.permission === "granted") {
+        sendNotification(char.n, reply, char.a || '');
+    }
+    resetCardAutoTimer(charId);
+}
+
+function renderCardList() {
+    const char = db.c.find(x => x.id == currentCardManagerId);
+    const words = char ? (char.cardWords || []) : [];
+    const area = document.getElementById('card-list-area');
+    if (!words.length) {
+        area.innerHTML = '<div style="text-align:center;color:#bbb;padding:40px 0;font-size:14px;">还没有词条，点击"添加"开始吧~</div>';
+        return;
+    }
+    area.innerHTML = words.map((w, i) => `
+        <div style="display:flex;align-items:center;background:#fff;border-radius:10px;padding:12px 14px;margin-bottom:8px;box-shadow:0 1px 3px rgba(0,0,0,0.06);">
+            ${cardMultiSelectMode ? `<input type="checkbox" style="margin-right:10px;width:18px;height:18px;flex-shrink:0;" ${cardSelectedIds.has(i)?'checked':''} onchange="toggleCardSelect(${i},this.checked)">` : ''}
+            <span style="flex:1;font-size:14px;color:#333;line-height:1.5;">${w}</span>
+            ${!cardMultiSelectMode ? `<span onclick="deleteCardWord(${i})" style="color:#ff4444;font-size:18px;cursor:pointer;padding:0 4px;flex-shrink:0;">×</span>` : ''}
+        </div>
+    `).join('');
+    // 更新多选计数
+    document.getElementById('card-selected-count').innerText = `已选 ${cardSelectedIds.size} 项`;
+}
+
+function toggleCardMultiSelect() {
+    cardMultiSelectMode = !cardMultiSelectMode;
+    cardSelectedIds = new Set();
+    const btn = document.getElementById('card-multi-btn');
+    const bar = document.getElementById('card-multi-bar');
+    if (cardMultiSelectMode) {
+        btn.style.background = '#07c160'; btn.style.color = '#fff'; btn.style.borderColor = '#07c160';
+        btn.innerText = '退出多选';
+        bar.style.display = 'flex';
+    } else {
+        btn.style.background = '#f0f0f0'; btn.style.color = '#333'; btn.style.borderColor = '#ccc';
+        btn.innerText = '多选';
+        bar.style.display = 'none';
+    }
+    renderCardList();
+}
+
+function toggleCardSelect(idx, checked) {
+    if (checked) cardSelectedIds.add(idx); else cardSelectedIds.delete(idx);
+    document.getElementById('card-selected-count').innerText = `已选 ${cardSelectedIds.size} 项`;
+}
+
+function deleteSelectedCards() {
+    if (!cardSelectedIds.size) { alert('请先选择要删除的词条'); return; }
+    if (!confirm(`确定删除选中的 ${cardSelectedIds.size} 条词条吗？`)) return;
+    const char = db.c.find(x => x.id == currentCardManagerId);
+    if (!char) return;
+    char.cardWords = (char.cardWords || []).filter((_, i) => !cardSelectedIds.has(i));
+    cardSelectedIds = new Set();
+    commit();
+    toggleCardMultiSelect();
+}
+
+function deleteCardWord(idx) {
+    const char = db.c.find(x => x.id == currentCardManagerId);
+    if (!char) return;
+    char.cardWords = (char.cardWords || []).filter((_, i) => i !== idx);
+    commit();
+    renderCardList();
+}
+
+function openAddCardDialog() {
+    const dialog = document.getElementById('add-card-dialog');
+    dialog.style.display = 'flex';
+    document.getElementById('add-card-input').value = '';
+    setTimeout(() => document.getElementById('add-card-input').focus(), 100);
+}
+
+function closeAddCardDialog() {
+    document.getElementById('add-card-dialog').style.display = 'none';
+}
+
+function confirmAddCards() {
+    const val = document.getElementById('add-card-input').value.trim();
+    if (!val) { alert('请输入词条内容'); return; }
+    const newWords = val.split('\n').map(s => s.trim()).filter(s => s.length > 0);
+    if (!newWords.length) { alert('请输入有效词条'); return; }
+    const char = db.c.find(x => x.id == currentCardManagerId);
+    if (!char) return;
+    if (!char.cardWords) char.cardWords = [];
+    char.cardWords.push(...newWords);
+    commit();
+    closeAddCardDialog();
+    renderCardList();
+}
+
+function importCards() {
+    const input = document.createElement('input');
+    input.type = 'file'; input.accept = '.txt,.json';
+    input.onchange = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            const text = ev.target.result;
+            let words = [];
+            try { words = JSON.parse(text); if (!Array.isArray(words)) throw new Error(); }
+            catch { words = text.split('\n').map(s => s.trim()).filter(s => s.length > 0); }
+            const char = db.c.find(x => x.id == currentCardManagerId);
+            if (!char) return;
+            if (!char.cardWords) char.cardWords = [];
+            char.cardWords.push(...words);
+            commit(); renderCardList();
+            alert(`成功导入 ${words.length} 条词条！`);
+        };
+        reader.readAsText(file, 'utf-8');
+    };
+    input.click();
+}
+
+function exportCards() {
+    const char = db.c.find(x => x.id == currentCardManagerId);
+    const words = char ? (char.cardWords || []) : [];
+    if (!words.length) { alert('词库为空，无法导出'); return; }
+    const text = words.join('\n');
+    const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `字卡词库_${char.n}.txt`;
+    a.click();
+}
+
+// ── 拍一拍管理器 ──
+function openPokeManager(charId) {
+    currentPokeManagerId = charId;
+    document.getElementById('poke-manager-panel').style.display = 'flex';
+    renderPokeList();
+}
+
+function closePokeManager() {
+    document.getElementById('poke-manager-panel').style.display = 'none';
+    currentPokeManagerId = null;
+}
+
+function renderPokeList() {
+    const char = db.c.find(x => x.id == currentPokeManagerId);
+    const words = char ? (char.pokeWords || []) : [];
+    const area = document.getElementById('poke-list-area');
+    if (!words.length) {
+        area.innerHTML = '<div style="text-align:center;color:#bbb;padding:40px 0;font-size:14px;">还没有词条，点击"添加词条"开始吧~</div>';
+        return;
+    }
+    area.innerHTML = words.map((w, i) => `
+        <div style="display:flex;align-items:center;background:#fff;border-radius:10px;padding:12px 14px;margin-bottom:8px;box-shadow:0 1px 3px rgba(0,0,0,0.06);">
+            <span style="flex:1;font-size:14px;color:#333;line-height:1.5;">${w}</span>
+            <span onclick="deletePokeWord(${i})" style="color:#ff4444;font-size:18px;cursor:pointer;padding:0 4px;flex-shrink:0;">×</span>
+        </div>
+    `).join('');
+}
+
+function addPokeWord() {
+    const word = prompt('输入拍一拍回复文案（角色拍回用户时显示的文字）：\n如：笑着拍了拍你\n悄悄捏了捏你的脸');
+    if (!word || !word.trim()) return;
+    const char = db.c.find(x => x.id == currentPokeManagerId);
+    if (!char) return;
+    if (!char.pokeWords) char.pokeWords = [];
+    // 支持多行输入
+    const newWords = word.split('\n').map(s => s.trim()).filter(s => s.length > 0);
+    char.pokeWords.push(...newWords);
+    commit();
+    renderPokeList();
+}
+
+function deletePokeWord(idx) {
+    const char = db.c.find(x => x.id == currentPokeManagerId);
+    if (!char) return;
+    char.pokeWords = (char.pokeWords || []).filter((_, i) => i !== idx);
+    commit();
+    renderPokeList();
+}
+
+// ── 切换 API/字卡 模式（在信息页面列表单元格中添加切换按钮）──
+function toggleCharCardMode(charId, e) {
+    e.stopPropagation();
+    const char = db.c.find(x => x.id == charId);
+    if (!char) return;
+    char.cardMode = !char.cardMode;
+    commit();
+    render();
+}
+
+// ════════════════════════════════════════════════
+// 相册功能
+// ════════════════════════════════════════════════
+let albumViewerLongPressTimer = null;
+let albumViewerCurrentIdx = -1;
+
+function openAlbumPage() {
+    if (!db.album) db.album = [];
+    document.getElementById('album-room').style.display = 'flex';
+    renderAlbumGrid();
+}
+
+function closeAlbumPage() {
+    document.getElementById('album-room').style.display = 'none';
+}
+
+let albumLongPressTimer = null;
+
+function renderAlbumGrid() {
+    const grid = document.getElementById('album-grid');
+    const photos = db.album || [];
+    if (!photos.length) {
+        grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;color:#bbb;padding:60px 0;font-size:14px;">相册为空，点击右上角 ＋ 添加图片</div>`;
+        return;
+    }
+    grid.innerHTML = photos.map((p, i) => `
+        <div id="album-cell-${i}" style="aspect-ratio:1;overflow:hidden;background:#eee;cursor:pointer;position:relative;user-select:none;">
+            <img src="${p.url}" style="width:100%;height:100%;object-fit:cover;pointer-events:none;" onerror="this.style.display='none'">
+        </div>
+    `).join('');
+    // Attach events after render
+    photos.forEach((p, i) => {
+        const cell = document.getElementById('album-cell-' + i);
+        if (!cell) return;
+        let timer = null;
+        let moved = false;
+        cell.addEventListener('pointerdown', (e) => {
+            moved = false;
+            timer = setTimeout(() => {
+                if (!moved && confirm('确定要删除这张图片吗？')) {
+                    db.album.splice(i, 1);
+                    commit();
+                    renderAlbumGrid();
+                }
+            }, 700);
+        });
+        cell.addEventListener('pointermove', () => { moved = true; if (timer) clearTimeout(timer); });
+        cell.addEventListener('pointerup', () => { if (!moved) { clearTimeout(timer); openAlbumViewer(i); } });
+        cell.addEventListener('pointercancel', () => clearTimeout(timer));
+    });
+}
+
+function openAddAlbumPhoto() {
+    const url = prompt('请输入图片 URL 地址：');
+    if (!url || !url.trim()) return;
+    if (!db.album) db.album = [];
+    db.album.push({ url: url.trim(), t: Date.now() });
+    commit();
+    renderAlbumGrid();
+}
+
+function openAlbumViewer(idx) {
+    const photos = db.album || [];
+    if (idx < 0 || idx >= photos.length) return;
+    albumViewerCurrentIdx = idx;
+    const viewer = document.getElementById('album-viewer');
+    const img = document.getElementById('album-viewer-img');
+    img.src = photos[idx].url;
+    viewer.style.display = 'flex';
+}
+
+function closeAlbumViewer() {
+    document.getElementById('album-viewer').style.display = 'none';
+    albumViewerCurrentIdx = -1;
+}
 
 function editMe() {
     showModal('编辑个人信息', () => {
@@ -2076,15 +2750,42 @@ function showTab(t, el) {
     render();
 }
 
+function switchToCardMode() {
+    if (!curChatId) return;
+    const char = db.c.find(x => x.id == curChatId);
+    if (!char) return;
+    char.cardMode = true;
+    commit();
+    document.getElementById('chat-room').style.display = 'none';
+    openCardChatRoom(curChatId);
+}
+
+function switchToApiMode() {
+    if (!curChatId) return;
+    const char = db.c.find(x => x.id == curChatId);
+    if (!char) return;
+    char.cardMode = false;
+    commit();
+    document.getElementById('card-chat-room').style.display = 'none';
+    const chatRoom = document.getElementById('chat-room');
+    chatRoom.style.display = 'flex';
+    chatRoom.style.backgroundImage = char.bg ? `url(${char.bg})` : 'none';
+    document.getElementById('chat-title').innerText = char.n;
+    renderChat();
+    updateSimUI();
+}
+
 function goBack() { document.getElementById('chat-room').style.display='none'; curChatId=null; render(); }
-function showModal(t, ok, b) {
+function showModal(t, ok, b, extraNav) {
     document.getElementById('modal-head').innerText=t; document.getElementById('modal-body').innerHTML=b;
     document.getElementById('modal-ok').onclick=()=>{if(ok)ok(); hideModal();};
+    const extraEl = document.getElementById('modal-extra-nav');
+    if(extraEl) extraEl.innerHTML = extraNav||'';
     document.getElementById('modal-box').style.display='flex';
 }
 function hideModal() { document.getElementById('modal-box').style.display='none'; }
 function manageMsg(i) {
-    showModal('编辑消息', () => { db.m[curChatId][i].c=document.getElementById('e-m').value; commit(); renderChat(); }, `<textarea id="e-m" class="input-item" style="height:150px">${db.m[curChatId][i].c}</textarea><p onclick="db.m[curChatId].splice(${i},1);hideModal();commit();renderChat();" style="color:red;padding:10px;text-align:center;cursor:pointer;">删除</p>`);
+    showModal('编辑消息', () => { db.m[curChatId][i].c=document.getElementById('e-m').value; commit(); renderChat(); }, `<textarea id="e-m" class="input-item" style="height:150px">${db.m[curChatId][i].c}</textarea><p onclick="if(confirm('确定要删除这条消息吗？')){db.m[curChatId].splice(${i},1);hideModal();commit();renderChat();}" style="color:red;padding:10px;text-align:center;cursor:pointer;">删除</p>`);
 }
 function resetTimer(cid) { if(timers[cid]) clearTimeout(timers[cid]); const c=db.c.find(x=>x.id==cid); if(!c||!c.autoOn)return; const ms=(Math.floor(Math.random()*(c.maxT-c.minT+1))+c.minT)*60000; timers[cid]=setTimeout(()=>fetchAI(cid), ms); }
 
